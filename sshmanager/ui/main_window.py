@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget, QSplitter, QPlainTextEdit, QPushButton, QToolBar,
     QDialog, QLabel, QFormLayout, QLineEdit, QDialogButtonBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QProcess
 
 from ..models import Connection, Config
 from ..config import load_config, save_config
