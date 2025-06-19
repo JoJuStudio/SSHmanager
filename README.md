@@ -6,7 +6,7 @@ implementation based on the project description in `goal.txt`.
 ## Features
 
 - Sidebar showing folders and saved connections
-- Tabbed area for launching terminals (currently a placeholder)
+- Tabbed area for launching terminals
 - Dialog for adding new connections
 - Connections saved to `~/.sshmanager/connections.json`
 
@@ -28,5 +28,5 @@ python -m sshmanager.main
 ```
 
 This launches a window where you can add SSH connections. Double-click a
-connection to open a placeholder terminal tab. Terminal embedding with Konsole
-is not yet implemented.
+connection to open a terminal tab. The tab runs the system ``ssh`` command
+through a simple embedded terminal widget.
