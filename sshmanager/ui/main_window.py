@@ -1,21 +1,41 @@
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QTreeWidget, QTreeWidgetItem, QTabWidget,
-    QVBoxLayout, QWidget, QSplitter, QPlainTextEdit, QPushButton, QToolBar,
-    QDialog, QLabel, QFormLayout, QLineEdit, QDialogButtonBox
+    QMainWindow,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+    QSplitter,
+    QPlainTextEdit,
+    QPushButton,
+    QToolBar,
+    QDialog,
+    QLabel,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QMenu,
 )
-from PyQt6.QtCore import Qt, QProcess
+from PyQt6.QtCore import Qt, QProcess, QPoint
+from PyQt6.QtGui import QAction
 
 from ..models import Connection, Config
 from ..config import load_config, save_config
 
 
 class ConnectionDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, connection: Connection | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Add SSH Connection")
         self.conn = None
+        self._orig = connection
+
+        if connection is None:
+            self.setWindowTitle("Add SSH Connection")
+        else:
+            self.setWindowTitle("Edit SSH Connection")
+
 
         layout = QFormLayout(self)
         self.label_edit = QLineEdit(self)
@@ -23,6 +43,12 @@ class ConnectionDialog(QDialog):
         self.user_edit = QLineEdit(self)
         self.port_edit = QLineEdit(self)
         self.port_edit.setText("22")
+
+        if connection is not None:
+            self.label_edit.setText(connection.label)
+            self.host_edit.setText(connection.host)
+            self.user_edit.setText(connection.username)
+            self.port_edit.setText(str(connection.port))
 
         layout.addRow("Label", self.label_edit)
         layout.addRow("Host", self.host_edit)
@@ -47,33 +73,40 @@ class ConnectionDialog(QDialog):
             host=self.host_edit.text(),
             username=self.user_edit.text(),
             port=port,
+            folder=self._orig.folder if self._orig else "Default",
+            key_path=self._orig.key_path if self._orig else None,
+            initial_cmd=self._orig.initial_cmd if self._orig else None,
         )
         super().accept()
 
 
 class TerminalTab(QWidget):
-    """Simple SSH terminal using ``QProcess``."""
+    """Embeds KDE Konsole for an SSH connection."""
 
     def __init__(self, connection: Connection, parent=None) -> None:
         super().__init__(parent)
         self._conn = connection
 
         self.process = QProcess(self)
-        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
-
-        self.output = QPlainTextEdit(self)
-        self.output.setReadOnly(True)
-        self.input = QLineEdit(self)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(self.output)
-        layout.addWidget(self.input)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        self.process.readyReadStandardOutput.connect(self._handle_output)
-        self.process.readyReadStandardError.connect(self._handle_output)
-        self.input.returnPressed.connect(self._send_input)
+        # Container widget that will host the Konsole window
+        self.container = QWidget(self)
+        layout.addWidget(self.container)
+
+        self.info = QLabel("Starting Konsole...", self)
+        layout.addWidget(self.info)
+
+        # Ensure we have a native window ID for embedding
+        wid = int(self.container.winId())
 
         cmd = [
+            "konsole",
+            f"--embed={wid}",
+            "--noclose",
+            "-e",
             "ssh",
             f"{connection.username}@{connection.host}",
             "-p",
@@ -81,18 +114,19 @@ class TerminalTab(QWidget):
         ]
         if connection.key_path:
             cmd.extend(["-i", connection.key_path])
+        if connection.initial_cmd:
+            cmd.extend(["-t", connection.initial_cmd])
+
+        self.process.started.connect(lambda: self.info.setText(""))
+        self.process.errorOccurred.connect(
+            lambda _: self.info.setText("Failed to launch Konsole")
+        )
         self.process.start(cmd[0], cmd[1:])
 
-    def _handle_output(self) -> None:
-        data = bytes(self.process.readAll()).decode(errors="ignore")
-        self.output.moveCursor(self.output.textCursor().MoveOperation.End)
-        self.output.insertPlainText(data)
-        self.output.moveCursor(self.output.textCursor().MoveOperation.End)
-
-    def _send_input(self) -> None:
-        text = self.input.text() + "\n"
-        self.process.write(text.encode())
-        self.input.clear()
+    def closeEvent(self, event) -> None:
+        if self.process.state() != QProcess.ProcessState.NotRunning:
+            self.process.terminate()
+        super().closeEvent(event)
 
 
 class MainWindow(QMainWindow):
@@ -123,6 +157,8 @@ class MainWindow(QMainWindow):
 
         self.load_connections()
         self.tree.itemDoubleClicked.connect(self.open_connection)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self.show_context_menu)
 
     def load_connections(self):
         self.tree.clear()
@@ -149,3 +185,37 @@ class MainWindow(QMainWindow):
             tab = TerminalTab(conn, self)
             self.tab_widget.addTab(tab, conn.label)
             self.tab_widget.setCurrentWidget(tab)
+
+    def show_context_menu(self, pos: QPoint) -> None:
+        item = self.tree.itemAt(pos)
+        if item is None:
+            return
+        conn = item.data(0, Qt.ItemDataRole.UserRole)
+        menu = QMenu(self)
+        if isinstance(conn, Connection):
+            open_act = QAction("Open", self)
+            open_act.triggered.connect(lambda: self.open_connection(item))
+            menu.addAction(open_act)
+
+            edit_act = QAction("Edit", self)
+            edit_act.triggered.connect(lambda: self.edit_connection(item, conn))
+            menu.addAction(edit_act)
+
+            del_act = QAction("Delete", self)
+            del_act.triggered.connect(lambda: self.delete_connection(item, conn))
+            menu.addAction(del_act)
+        menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def edit_connection(self, item: QTreeWidgetItem, conn: Connection) -> None:
+        dlg = ConnectionDialog(self, conn)
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.conn:
+            index = self.config.connections.index(conn)
+            self.config.connections[index] = dlg.conn
+            save_config(self.config)
+            self.load_connections()
+
+    def delete_connection(self, item: QTreeWidgetItem, conn: Connection) -> None:
+        if conn in self.config.connections:
+            self.config.connections.remove(conn)
+            save_config(self.config)
+            self.load_connections()

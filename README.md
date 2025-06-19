@@ -6,8 +6,9 @@ implementation based on the project description in `goal.txt`.
 ## Features
 
 - Sidebar showing folders and saved connections
-- Tabbed area for launching terminals
+- Tabbed area for launching terminals embedded via KDE Konsole
 - Dialog for adding new connections
+- Context menu to edit or delete connections
 - Connections saved to `~/.sshmanager/connections.json`
 
 ## Requirements
@@ -28,5 +29,5 @@ python -m sshmanager.main
 ```
 
 This launches a window where you can add SSH connections. Double-click a
-connection to open a terminal tab. The tab runs the system ``ssh`` command
-through a simple embedded terminal widget.
+connection to open a terminal tab. Each tab embeds ``konsole`` inside the
+application running ``ssh`` with your saved settings.
