@@ -1,0 +1,111 @@
+🧠 Project: KDE SSH Manager (with Bitwarden Reference)
+✅ Core Vision
+
+A fully GUI-configurable SSH Manager app built with Python and Qt, featuring:
+
+    A KDE-style interface with Konsole terminal embedded
+
+    Sidebar for organizing SSH connections into folders
+
+    Tabs for multiple terminal sessions
+
+    GUI dialogs for adding, editing, and deleting connections
+
+    Optional Bitwarden reference to fetch email + hostname (not credentials)
+
+🖥️ Main UI Components
+🧭 Layout
+
++-------------------------------+-------------------------------+
+|     Sidebar (Folders)         |     Embedded Terminal Area     |
+|-------------------------------|-------------------------------|
+| [📁] Work                     |  [Tab 1: server1]              |
+|  └─ [🖥️] dev@server1.com     |  [Tab 2: server2]              |
+|                               |  [ + New Tab ]                |
+| [📁] Personal                 |                               |
+|  └─ [🖥️] me@home-server      |  [ Konsole Embedded Here ]     |
+|-------------------------------|-------------------------------|
+| [+] Add SSH  [⛭ Preferences] |                               |
++-------------------------------+-------------------------------+
+
+🧩 Features in the GUI
+Feature	GUI Behavior
+Add/Edit/Delete SSH connections	Full forms with validation
+Organize connections into folders	Drag-and-drop or folder selector
+Launch SSH in tabbed terminal	On click, opens in embedded Konsole tab
+Edit port forwarding	Visual interface for adding/removing rules
+Configure per-connection options	SSH user, port, key file, startup commands, etc.
+Collapse/expand sidebar	Like Kate/Dolphin
+Bitwarden fetch button (optional)	Fills email/host from matching Bitwarden item
+⚙️ Connection Configuration (GUI-based)
+
+Every connection can be edited using a modal dialog with the following fields:
+🔐 SSH Settings
+
+    Label (Display name)
+
+    Host
+
+    Username
+
+    Port
+
+    SSH Key path (optional)
+
+    Initial remote command (optional)
+
+🌐 Port Forwarding (GUI-managed table)
+
+    Add/remove forwarding rules
+
+    Types: Local / Remote / Dynamic
+
+    Example:
+
+        Local: 127.0.0.1:8000 → localhost:80
+
+        Remote: 0.0.0.0:2222 → localhost:22
+
+🧩 Bitwarden Integration (Optional)
+
+    Manual entry of Bitwarden item name
+
+    “🔄 Fetch from Bitwarden” button
+
+    Only fills:
+
+        email → used as SSH username
+
+        URI/name → used for hostname
+
+🛠️ Tech Stack
+Component	Tool/Library
+GUI	PyQt6 / PySide6
+Terminal embed	KonsolePart (KDE terminal)
+SSH sessions	System ssh
+Config storage	JSON or SQLite (via GUI)
+Bitwarden access	Bitwarden CLI or API
+App framework	Python 3.x
+🚀 Workflow Example
+
+    User clicks [+ Add SSH]
+
+        Opens a form to enter host, user, key, port, etc.
+
+        Optional: enter Bitwarden item name → click "Fetch"
+
+    Click “Save”
+
+        SSH config saved to local DB or file
+
+    Click on entry in sidebar
+
+        Opens tab with konsole running ssh user@host
+
+    User right-clicks connection
+
+        Options: Edit / Delete / Duplicate
+
+    Clicks tab [+]
+
+        Opens new blank terminal tab
