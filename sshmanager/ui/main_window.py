@@ -52,15 +52,47 @@ class ConnectionDialog(QDialog):
 
 
 class TerminalTab(QWidget):
-    def __init__(self, connection: Connection, parent=None):
+    """Simple SSH terminal using ``QProcess``."""
+
+    def __init__(self, connection: Connection, parent=None) -> None:
         super().__init__(parent)
+        self._conn = connection
+
+        self.process = QProcess(self)
+        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+
+        self.output = QPlainTextEdit(self)
+        self.output.setReadOnly(True)
+        self.input = QLineEdit(self)
+
         layout = QVBoxLayout(self)
-        text = QPlainTextEdit(self)
-        text.setReadOnly(True)
-        text.setPlainText(
-            f"Pretend this is a terminal running: ssh {connection.username}@{connection.host}"
-        )
-        layout.addWidget(text)
+        layout.addWidget(self.output)
+        layout.addWidget(self.input)
+
+        self.process.readyReadStandardOutput.connect(self._handle_output)
+        self.process.readyReadStandardError.connect(self._handle_output)
+        self.input.returnPressed.connect(self._send_input)
+
+        cmd = [
+            "ssh",
+            f"{connection.username}@{connection.host}",
+            "-p",
+            str(connection.port),
+        ]
+        if connection.key_path:
+            cmd.extend(["-i", connection.key_path])
+        self.process.start(cmd[0], cmd[1:])
+
+    def _handle_output(self) -> None:
+        data = bytes(self.process.readAll()).decode(errors="ignore")
+        self.output.moveCursor(self.output.textCursor().MoveOperation.End)
+        self.output.insertPlainText(data)
+        self.output.moveCursor(self.output.textCursor().MoveOperation.End)
+
+    def _send_input(self) -> None:
+        text = self.input.text() + "\n"
+        self.process.write(text.encode())
+        self.input.clear()
 
 
 class MainWindow(QMainWindow):
