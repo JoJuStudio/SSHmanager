@@ -9,8 +9,8 @@ loaded directly from Bitwarden and no data is stored locally.
 - Tabbed area for launching terminals embedded via KDE Konsole
 - Opens a local terminal tab at startup
 - `Ctrl+T` opens a new empty terminal tab
-- Bitwarden integration loads connection configs from Bitwarden items stored in
-  the `SSH` folder (requires the Bitwarden CLI)
+- Bitwarden integration loads connection configs from items stored in
+  the `SSH` folder via the Bitwarden API
 - No local configuration file is written
 
 ## Requirements
@@ -61,10 +61,10 @@ rather than launching it inside the C++ helper.
 
 ### Bitwarden integration
 
-The [Bitwarden CLI](https://bitwarden.com/help/cli/) must be installed and you
-must be logged in (`bw login` and `bw unlock`). Connection information is read
-from Bitwarden items placed in a folder named `SSH`. Only the item's login
-**username** and **URI** fields are used.
+Click the **Login** button to provide a Bitwarden API token and optional server
+URL. The token can be generated in the web vault under Settings → API Key.
+After entering the token, connections are loaded from items placed in a folder
+named `SSH`. Only the item's login **username** and **URI** fields are used.
 
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.

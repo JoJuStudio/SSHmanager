@@ -14,8 +14,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMenu,
     QShortcut,
-    QInputDialog,
-    QLineEdit,
     QMessageBox,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
@@ -24,6 +22,8 @@ from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
 from ..config import load_config
+from .. import bitwarden
+from .login_dialog import LoginDialog
 
 
 class TerminalTab(QWidget):
@@ -206,28 +206,15 @@ class MainWindow(QMainWindow):
         menu.exec(self.tree.viewport().mapToGlobal(pos))
 
     def login_bitwarden(self) -> None:
-        """Prompt for password and unlock the Bitwarden vault."""
-        password, ok = QInputDialog.getText(
-            self,
-            "Bitwarden Login",
-            "Master password:",
-            QLineEdit.Password,
-        )
-        if not ok or not password:
+        """Prompt for an API token and reload connections."""
+        dlg = LoginDialog(self)
+        if dlg.exec() != dlg.Accepted:
             return
-        try:
-            subprocess.run([
-                "bw",
-                "unlock",
-            ], input=password + "\n", text=True, check=True)
-        except (OSError, subprocess.CalledProcessError) as exc:
-            QMessageBox.critical(
-                self,
-                "Login Failed",
-                f"Failed to unlock Bitwarden: {exc}",
-            )
+        token, server = dlg.values()
+        if not bitwarden.login(token, server):
+            QMessageBox.critical(self, "Login Failed", "Invalid Bitwarden token")
             return
-        self.statusBar().showMessage("Bitwarden unlocked", 3000)
+        self.statusBar().showMessage("Bitwarden token set", 3000)
         self.config = load_config()
         self.load_connections()
 
