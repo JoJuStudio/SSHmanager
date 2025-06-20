@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from PyQt5.QtWidgets import (
     QMainWindow,
     QTreeWidget,
@@ -18,7 +19,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QMenu,
 )
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
@@ -106,11 +107,35 @@ class TerminalTab(QWidget):
         )
 
         if widget is None:
+            logging.error(
+                "Failed to create Konsole widget for %s@%s",
+                connection.username,
+                connection.host,
+            )
             self.container = QLabel("Failed to load Konsole", self)
             layout.addWidget(self.container)
         else:
             self.container = embed_container
             layout.addWidget(embed_container)
+            self._term_widget = widget
+            self._check_timer = QTimer(self)
+            self._check_timer.timeout.connect(self._check_widget)
+            self._check_timer.start(2000)
+
+    def _check_widget(self):
+        from PyQt5 import sip
+        if sip.isdeleted(self._term_widget):
+            logging.error(
+                "Konsole widget closed unexpectedly for %s@%s",
+                self._conn.username,
+                self._conn.host,
+            )
+            self._check_timer.stop()
+            layout = self.layout()
+            layout.removeWidget(self.container)
+            self.container.deleteLater()
+            self.container = QLabel("Konsole closed unexpectedly", self)
+            layout.addWidget(self.container)
 
     def closeEvent(self, event) -> None:
         super().closeEvent(event)
