@@ -2,7 +2,9 @@ import json
 import logging
 import subprocess
 from shutil import which
-from typing import Any, Optional
+from typing import Any, Optional, List
+
+from .models import Connection
 
 
 def get_status() -> Optional[str]:
@@ -101,3 +103,37 @@ def fetch_credentials(item: str) -> Optional[dict[str, Any]]:
         return None
 
     return cfg
+
+
+def list_connections() -> List[Connection]:
+    """Return all connections stored in the Bitwarden ``SSH`` folder.
+
+    Only the item's login URI and username are used. Additional fields are
+    ignored. Items missing these fields are skipped.
+    """
+    connections: List[Connection] = []
+    if not (is_available() and is_unlocked()):
+        return connections
+
+    folder_id = _get_ssh_folder_id()
+    if folder_id is None:
+        logging.error("Bitwarden folder 'SSH' not found")
+        return connections
+    try:
+        output = _run_bw(["list", "items", "--folderid", folder_id])
+        items = json.loads(output)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        logging.error("Failed to list Bitwarden items: %s", exc)
+        return connections
+
+    for item in items:
+        login = item.get("login", {})
+        username = login.get("username")
+        uris = login.get("uris") or []
+        uri = uris[0].get("uri") if uris else None
+        if not (username and uri):
+            continue
+        label = item.get("name") or username
+        connections.append(Connection(label=label, host=uri, username=username))
+
+    return connections

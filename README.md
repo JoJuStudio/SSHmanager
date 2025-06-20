@@ -1,19 +1,17 @@
 # SSH Manager
 
-A simple graphical SSH connection manager built with PyQt5. This is a starting
-implementation based on the project description in `goal.txt`.
+A simple graphical SSH connection manager built with PyQt5. Connections are
+loaded directly from Bitwarden and no data is stored locally.
 
 ## Features
 
 - Sidebar showing folders and saved connections
 - Tabbed area for launching terminals embedded via KDE Konsole
 - Opens a local terminal tab at startup
-- Dialog for adding new connections, including folder, SSH key, and optional initial command
-- Context menu to edit or delete connections
-- Connections saved to `~/.sshmanager/connections.json`
 - `Ctrl+T` opens a new empty terminal tab
 - Bitwarden integration loads connection configs from Bitwarden items stored in
   the `SSH` folder (requires the Bitwarden CLI)
+- No local configuration file is written
 
 ## Requirements
 
@@ -56,31 +54,17 @@ g++ -fPIC -shared konsole_embed.cpp -o sshmanager/libkonsole_embed.so \
   -lKF5Parts -lKF5XmlGui -lKF5CoreAddons -lQt5Widgets -lQt5Gui -lQt5Core
 ```
 
-This launches a window where you can add SSH connections. Double-click a
-connection to open a terminal tab. Each tab embeds the Konsole KPart. The
+This launches a window listing the connections found in Bitwarden. Double-click
+a connection to open a terminal tab. Each tab embeds the Konsole KPart. The
 application clears the terminal and sends the ``ssh`` command from Python,
 rather than launching it inside the C++ helper.
 
 ### Bitwarden integration
 
 The [Bitwarden CLI](https://bitwarden.com/help/cli/) must be installed and you
-must be logged in (`bw login` and `bw unlock`). The "Fetch" button in the
-connection dialog is disabled until the CLI reports the vault is unlocked.
-Connection information can be
-stored inside Bitwarden items placed in a folder named `SSH`. The item's
-**notes/description** field should contain JSON describing the connection, for
-example:
+must be logged in (`bw login` and `bw unlock`). Connection information is read
+from Bitwarden items placed in a folder named `SSH`. Only the item's login
+**username** and **URI** fields are used.
 
-```json
-{
-  "label": "Prod Server",
-  "host": "server.example.com",
-  "username": "alice",
-  "port": 22,
-  "key_path": "~/.ssh/id_rsa",
-  "initial_cmd": "uptime"
-}
-```
-
-When you enter the item name or ID in the connection dialog and click
-**Fetch**, these fields will be populated from the stored JSON.
+Each item name becomes the connection label. Only the URL and username are
+stored, and the default SSH port 22 is used.

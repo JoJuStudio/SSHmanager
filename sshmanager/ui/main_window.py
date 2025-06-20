@@ -9,132 +9,17 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QSplitter,
-    QPushButton,
     QToolBar,
-    QDialog,
     QLabel,
-    QFormLayout,
-    QLineEdit,
-    QDialogButtonBox,
-    QMessageBox,
     QMenu,
     QShortcut,
-    QHBoxLayout,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
-from ..config import load_config, save_config
-from ..bitwarden import (
-    fetch_credentials,
-    is_available as bw_available,
-    is_unlocked as bw_unlocked,
-)
-
-
-class ConnectionDialog(QDialog):
-    def __init__(self, parent=None, connection: Connection | None = None):
-        super().__init__(parent)
-        self.conn = None
-        self._orig = connection
-
-        if connection is None:
-            self.setWindowTitle("Add SSH Connection")
-        else:
-            self.setWindowTitle("Edit SSH Connection")
-
-
-        layout = QFormLayout(self)
-        self.label_edit = QLineEdit(self)
-        self.host_edit = QLineEdit(self)
-        self.user_edit = QLineEdit(self)
-        self.port_edit = QLineEdit(self)
-        self.port_edit.setText("22")
-        self.folder_edit = QLineEdit(self)
-        self.key_edit = QLineEdit(self)
-        self.cmd_edit = QLineEdit(self)
-        self.bw_item_edit = QLineEdit(self)
-        self.fetch_btn = QPushButton("Fetch", self)
-        self.fetch_btn.clicked.connect(self.fetch_from_bitwarden)
-        if not (bw_available() and bw_unlocked()):
-            self.fetch_btn.setEnabled(False)
-
-        if connection is not None:
-            self.label_edit.setText(connection.label)
-            self.host_edit.setText(connection.host)
-            self.user_edit.setText(connection.username)
-            self.port_edit.setText(str(connection.port))
-            self.folder_edit.setText(connection.folder)
-            if connection.key_path:
-                self.key_edit.setText(connection.key_path)
-            if connection.initial_cmd:
-                self.cmd_edit.setText(connection.initial_cmd)
-
-        layout.addRow("Label", self.label_edit)
-        layout.addRow("Host", self.host_edit)
-        layout.addRow("Username", self.user_edit)
-        layout.addRow("Port", self.port_edit)
-        layout.addRow("Folder", self.folder_edit)
-        layout.addRow("SSH Key", self.key_edit)
-        layout.addRow("Initial Cmd", self.cmd_edit)
-        bw_layout = QHBoxLayout()
-        bw_layout.addWidget(self.bw_item_edit)
-        bw_layout.addWidget(self.fetch_btn)
-        layout.addRow("Bitwarden Item", bw_layout)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-            parent=self,
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)
-
-    def accept(self):
-        try:
-            port = int(self.port_edit.text())
-        except ValueError:
-            port = 22
-        self.conn = Connection(
-            label=self.label_edit.text(),
-            host=self.host_edit.text(),
-            username=self.user_edit.text(),
-            port=port,
-            folder=self.folder_edit.text() or "Default",
-            key_path=self.key_edit.text() or None,
-            initial_cmd=self.cmd_edit.text() or None,
-        )
-        super().accept()
-
-    def fetch_from_bitwarden(self) -> None:
-        """Populate fields using a connection stored in Bitwarden."""
-        item = self.bw_item_edit.text().strip()
-        if not item:
-            return
-        cfg = fetch_credentials(item)
-        if not cfg:
-            QMessageBox.warning(
-                self,
-                "Bitwarden",
-                "Failed to fetch item. Ensure you are logged in and unlocked.",
-            )
-            return
-        if cfg.get("label"):
-            self.label_edit.setText(cfg["label"])
-        if cfg.get("host"):
-            self.host_edit.setText(cfg["host"])
-        if cfg.get("username"):
-            self.user_edit.setText(cfg["username"])
-        if cfg.get("port"):
-            self.port_edit.setText(str(cfg["port"]))
-        if cfg.get("folder"):
-            self.folder_edit.setText(cfg["folder"])
-        if cfg.get("key_path"):
-            self.key_edit.setText(cfg["key_path"])
-        if cfg.get("initial_cmd"):
-            self.cmd_edit.setText(cfg["initial_cmd"])
+from ..config import load_config
 
 
 class TerminalTab(QWidget):
@@ -234,9 +119,6 @@ class MainWindow(QMainWindow):
 
         toolbar = QToolBar("Main", self)
         self.addToolBar(toolbar)
-        add_btn = QPushButton("Add SSH", self)
-        toolbar.addWidget(add_btn)
-        add_btn.clicked.connect(self.add_connection)
 
         # Shortcuts for switching tabs
         next_tab_shortcut = QShortcut(QKeySequence("Ctrl+Tab"), self)
@@ -266,12 +148,6 @@ class MainWindow(QMainWindow):
             item.setData(0, Qt.ItemDataRole.UserRole, conn)
         self.tree.expandAll()
 
-    def add_connection(self):
-        dlg = ConnectionDialog(self)
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.conn:
-            self.config.connections.append(dlg.conn)
-            save_config(self.config)
-            self.load_connections()
 
     def open_shell_tab(self) -> None:
         """Open a new tab running a local shell."""
@@ -319,25 +195,5 @@ class MainWindow(QMainWindow):
             open_act.triggered.connect(lambda: self.open_connection(item))
             menu.addAction(open_act)
 
-            edit_act = QAction("Edit", self)
-            edit_act.triggered.connect(lambda: self.edit_connection(item, conn))
-            menu.addAction(edit_act)
-
-            del_act = QAction("Delete", self)
-            del_act.triggered.connect(lambda: self.delete_connection(item, conn))
-            menu.addAction(del_act)
         menu.exec(self.tree.viewport().mapToGlobal(pos))
 
-    def edit_connection(self, item: QTreeWidgetItem, conn: Connection) -> None:
-        dlg = ConnectionDialog(self, conn)
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.conn:
-            index = self.config.connections.index(conn)
-            self.config.connections[index] = dlg.conn
-            save_config(self.config)
-            self.load_connections()
-
-    def delete_connection(self, item: QTreeWidgetItem, conn: Connection) -> None:
-        if conn in self.config.connections:
-            self.config.connections.remove(conn)
-            save_config(self.config)
-            self.load_connections()
