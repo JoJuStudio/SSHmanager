@@ -64,7 +64,9 @@ rather than launching it inside the C++ helper.
 ### Bitwarden integration
 
 The [Bitwarden CLI](https://bitwarden.com/help/cli/) must be installed and you
-must be logged in (`bw login` and `bw unlock`). Connection information can be
+must be logged in (`bw login` and `bw unlock`). The "Fetch" button in the
+connection dialog is disabled until the CLI reports the vault is unlocked.
+Connection information can be
 stored inside Bitwarden items placed in a folder named `SSH`. The item's
 **notes/description** field should contain JSON describing the connection, for
 example:
