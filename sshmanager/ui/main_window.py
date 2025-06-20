@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt6.QtWidgets import (
+from PyQt5.QtWidgets import (
     QMainWindow,
     QTreeWidget,
     QTreeWidgetItem,
@@ -18,8 +18,8 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QMenu,
 )
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QAction
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
 from ..config import load_config, save_config
