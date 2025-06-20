@@ -3,11 +3,28 @@ from PyQt5.QtCore import QTimer
 import sys
 import signal
 import os
+import logging
+from pathlib import Path
 
 from .ui.main_window import MainWindow
 
 
 def main() -> None:
+    log_path = Path.home() / ".sshmanager" / "sshmanager.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s: %(message)s",
+    )
+
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        logging.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_exception
     args = sys.argv[:]
     if "--debug" in args:
         os.environ.setdefault("QT_DEBUG_PLUGINS", "1")
