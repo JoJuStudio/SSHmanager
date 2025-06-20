@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 from PyQt5.QtWidgets import (
     QMainWindow,
     QTreeWidget,
@@ -13,6 +14,9 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMenu,
     QShortcut,
+    QInputDialog,
+    QLineEdit,
+    QMessageBox,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtGui import QKeySequence
@@ -120,6 +124,10 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Main", self)
         self.addToolBar(toolbar)
 
+        login_act = QAction("Login", self)
+        login_act.triggered.connect(self.login_bitwarden)
+        toolbar.addAction(login_act)
+
         # Shortcuts for switching tabs
         next_tab_shortcut = QShortcut(QKeySequence("Ctrl+Tab"), self)
         next_tab_shortcut.activated.connect(self.next_tab)
@@ -196,4 +204,30 @@ class MainWindow(QMainWindow):
             menu.addAction(open_act)
 
         menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def login_bitwarden(self) -> None:
+        """Prompt for password and unlock the Bitwarden vault."""
+        password, ok = QInputDialog.getText(
+            self,
+            "Bitwarden Login",
+            "Master password:",
+            QLineEdit.Password,
+        )
+        if not ok or not password:
+            return
+        try:
+            subprocess.run([
+                "bw",
+                "unlock",
+            ], input=password + "\n", text=True, check=True)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            QMessageBox.critical(
+                self,
+                "Login Failed",
+                f"Failed to unlock Bitwarden: {exc}",
+            )
+            return
+        self.statusBar().showMessage("Bitwarden unlocked", 3000)
+        self.config = load_config()
+        self.load_connections()
 
