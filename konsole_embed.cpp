@@ -19,7 +19,8 @@ extern "C" QWidget* createKonsoleSshWidget(const char* user,
         return nullptr;
     }
 
-    QWidget* widget = result.plugin->widget();
+    KParts::ReadOnlyPart* part = result.plugin.release();
+    QWidget* widget = part->widget();
     if (parent) {
         auto layout = new QVBoxLayout(parent);
         layout->setContentsMargins(0, 0, 0, 0);
@@ -27,7 +28,7 @@ extern "C" QWidget* createKonsoleSshWidget(const char* user,
         parent->setLayout(layout);
     }
 
-    TerminalInterface* iface = qobject_cast<TerminalInterface*>(result.plugin);
+    TerminalInterface* iface = qobject_cast<TerminalInterface*>(part);
     if (iface) {
         QStringList args;
         if (key && key[0]) {
