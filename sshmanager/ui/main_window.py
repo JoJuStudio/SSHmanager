@@ -91,7 +91,7 @@ class TerminalTab(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        from ..util.konsole_embed import create_konsole_widget
+        from ..util.konsole_embed import create_konsole_widget, get_last_error
 
         # Use a dedicated container so the helper library can set up its own
         # layout without touching this widget's layout. This avoids duplicate
@@ -107,12 +107,14 @@ class TerminalTab(QWidget):
         )
 
         if widget is None:
+            error_msg = get_last_error() or "Failed to load Konsole"
             logging.error(
-                "Failed to create Konsole widget for %s@%s",
+                "Failed to create Konsole widget for %s@%s: %s",
                 connection.username,
                 connection.host,
+                error_msg,
             )
-            self.container = QLabel("Failed to load Konsole", self)
+            self.container = QLabel(error_msg, self)
             layout.addWidget(self.container)
         else:
             self.container = embed_container

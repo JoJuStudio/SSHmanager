@@ -9,17 +9,23 @@ from PyQt5 import sip
 
 
 _lib: Optional[CDLL] = None
+# Store the last error so the UI can display a helpful message
+_last_error: Optional[str] = None
 
 
 def _load_lib() -> Optional[CDLL]:
     """Load the helper library, printing errors when it fails."""
-    global _lib
+    global _lib, _last_error
     if _lib is None:
         lib_path = Path(__file__).resolve().parent.parent / "libkonsole_embed.so"
         try:
             _lib = CDLL(str(lib_path))
         except OSError as exc:
-            print(f"Failed to load {lib_path}: {exc}")
+            _last_error = (
+                f"Failed to load {lib_path}: {exc}\n"
+                "Run setup.sh to build libkonsole_embed.so and ensure KDE libraries are installed."
+            )
+            print(_last_error)
             return None
         _lib.createKonsoleSshWidget.argtypes = [
             c_char_p,
@@ -55,5 +61,13 @@ def create_konsole_widget(
         parent_ptr,
     )
     if not ptr:
+        _last_error = (
+            "Could not start Konsole. Ensure the 'konsole' and 'konsole-kpart' packages are installed."
+        )
         return None
     return sip.wrapinstance(ptr, QWidget)
+
+
+def get_last_error() -> Optional[str]:
+    """Return the most recent error from library loading or widget creation."""
+    return _last_error
