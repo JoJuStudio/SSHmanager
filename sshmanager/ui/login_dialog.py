@@ -11,15 +11,17 @@ class LoginDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Bitwarden API Login")
-        self.token_edit = QLineEdit(self)
-        self.token_edit.setEchoMode(QLineEdit.Password)
+        self.setWindowTitle("Bitwarden Login")
+        self.email_edit = QLineEdit(self)
+        self.password_edit = QLineEdit(self)
+        self.password_edit.setEchoMode(QLineEdit.Password)
         self.server_edit = QLineEdit(self)
         self.server_edit.setPlaceholderText("https://vault.bitwarden.com")
 
         layout = QFormLayout(self)
         layout.addRow("Server:", self.server_edit)
-        layout.addRow("API Token:", self.token_edit)
+        layout.addRow("Email:", self.email_edit)
+        layout.addRow("Master Password:", self.password_edit)
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
             parent=self,
@@ -30,4 +32,8 @@ class LoginDialog(QDialog):
 
     def values(self):
         server = self.server_edit.text().strip() or None
-        return self.token_edit.text().strip(), server
+        return (
+            self.email_edit.text().strip(),
+            self.password_edit.text(),
+            server,
+        )

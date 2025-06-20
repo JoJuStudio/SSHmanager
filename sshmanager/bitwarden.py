@@ -22,23 +22,47 @@ _token: Optional[str] = None
 _server: str = _DEFAULT_SERVER
 
 
-def login(token: str, server: str | None = None) -> bool:
-    """Store the API token and server URL.
+def login(email: str, password: str, server: str | None = None) -> bool:
+    """Authenticate using email and master password.
 
     Parameters
     ----------
-    token:
-        The API token generated in the Bitwarden/Vaultwarden web interface.
+    email:
+        Account email address.
+    password:
+        Master password used to unlock the vault.
     server:
         Base URL of the Vaultwarden instance. Defaults to the official
         Bitwarden cloud.
     """
 
-    if not token:
+    if not email or not password:
         return False
     global _token, _server
-    _token = token.strip()
     _server = server or _DEFAULT_SERVER
+    data = parse.urlencode(
+        {
+            "grant_type": "password",
+            "username": email,
+            "password": password,
+            "scope": "api offline_access",
+            "client_id": "desktop",
+        }
+    ).encode()
+    url = f"{_server}/identity/connect/token"
+    req = request.Request(url, data=data)
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    try:
+        with request.urlopen(req) as resp:
+            resp_data = json.loads(resp.read().decode())
+    except error.URLError as exc:
+        logging.error("Bitwarden login failed: %s", exc)
+        return False
+    token = resp_data.get("access_token")
+    if not token:
+        logging.error("Bitwarden login response missing access_token")
+        return False
+    _token = token
     return True
 
 
