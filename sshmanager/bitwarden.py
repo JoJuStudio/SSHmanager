@@ -9,11 +9,15 @@ Due to the limited scope, only a subset of the API is implemented.
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
-from typing import Any, Optional, List
+import hashlib
+from typing import Any, Optional, List, Tuple
 from urllib import request, error, parse
 from uuid import uuid4
+
+from argon2.low_level import Type, hash_secret_raw
 
 from .models import Connection
 
@@ -23,6 +27,46 @@ _token: Optional[str] = None
 _server: str = _DEFAULT_SERVER
 # Store the most recent login error message so the UI can present it
 _last_error: Optional[str] = None
+
+
+def _prelogin(email: str) -> Optional[Tuple[int, int]]:
+    """Retrieve KDF parameters for the account."""
+    url = f"{_server}/identity/accounts/prelogin"
+    data = json.dumps({"email": email}).encode()
+    req = request.Request(url, data=data)
+    req.add_header("Content-Type", "application/json")
+    try:
+        with request.urlopen(req) as resp:
+            info = json.loads(resp.read().decode())
+    except error.URLError as exc:
+        logging.error("Bitwarden prelogin failed: %s", exc)
+        return None
+    kdf = info.get("Kdf")
+    iterations = info.get("KdfIterations")
+    if kdf is None or iterations is None:
+        logging.error("Bitwarden prelogin response missing fields")
+        return None
+    return int(kdf), int(iterations)
+
+
+def _hash_password(email: str, password: str, kdf: int, iterations: int) -> str:
+    email_bytes = email.lower().encode()
+    pw_bytes = password.encode()
+    if kdf == 0:
+        dk = hashlib.pbkdf2_hmac("sha256", pw_bytes, email_bytes, iterations)
+    elif kdf == 1:
+        dk = hash_secret_raw(
+            pw_bytes,
+            email_bytes,
+            time_cost=iterations,
+            memory_cost=64 * 1024,
+            parallelism=4,
+            hash_len=32,
+            type=Type.ID,
+        )
+    else:
+        raise ValueError(f"Unsupported KDF: {kdf}")
+    return base64.b64encode(dk).decode()
 
 
 def login(
@@ -58,11 +102,20 @@ def login(
         return False
     _server = server or _DEFAULT_SERVER
     device_id = device_identifier or uuid4().hex
+
+    kdf_info = _prelogin(email)
+    if not kdf_info:
+        _last_error = _last_error or "Prelogin failed"
+        return False
+    kdf, iterations = kdf_info
+
+    password_hash = _hash_password(email, password, kdf, iterations)
+
     data = parse.urlencode(
         {
             "grant_type": "password",
             "username": email,
-            "password": password,
+            "password": password_hash,
             "scope": "api offline_access",
             "client_id": "desktop",
             "deviceType": 8,
@@ -178,3 +231,18 @@ def list_connections() -> List[Connection]:
         label = item.get("name") or username
         conns.append(Connection(label=label, host=uri, username=username))
     return conns
+
+
+def sync() -> Any:
+    """Return the raw data from the ``/sync`` endpoint."""
+    if not is_unlocked():
+        return None
+    url = f"{_server}/api/sync"
+    req = request.Request(url)
+    req.add_header("Authorization", f"Bearer {_token}")
+    try:
+        with request.urlopen(req) as resp:
+            return json.loads(resp.read().decode())
+    except error.URLError as exc:
+        logging.error("Bitwarden sync request failed: %s", exc)
+        return None

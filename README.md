@@ -17,6 +17,7 @@ loaded directly from Bitwarden and no data is stored locally.
 
 - Python 3.10+
 - PyQt5
+- argon2-cffi
 - Qt5 development packages and `libkf5parts-dev` to build the Konsole wrapper
 
 Install Python dependencies with:
