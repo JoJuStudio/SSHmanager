@@ -15,8 +15,9 @@ implementation based on the project description in `goal.txt`.
 
 - Python 3.10+
 - PyQt6
+- Qt5 development packages and `libkf5parts-dev` to build the Konsole wrapper
 
-Install dependencies with:
+Install Python dependencies with:
 
 ```bash
 pip install -r requirements.txt
@@ -28,6 +29,29 @@ pip install -r requirements.txt
 python -m sshmanager.main
 ```
 
+### Building the Konsole wrapper
+
+After installing the Qt and KF5 development packages, run the provided setup
+script to compile `libkonsole_embed.so`:
+
+```bash
+./setup.sh
+```
+
+The script simply runs the `g++` command shown below. You only need to run it
+once unless you modify `konsole_embed.cpp`.
+
+```bash
+g++ -fPIC -shared konsole_embed.cpp -o libkonsole_embed.so \
+  -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets \
+  -I/usr/include/x86_64-linux-gnu/qt5/QtGui \
+  -I/usr/include/x86_64-linux-gnu/qt5/QtCore \
+  -I/usr/include/x86_64-linux-gnu/qt5 \
+  -I/usr/include/KF5/KParts -I/usr/include/KF5 \
+  -I/usr/include/KF5/KCoreAddons -I/usr/include/KF5/KXmlGui \
+  -lKF5Parts -lKF5XmlGui -lKF5CoreAddons -lQt5Widgets -lQt5Gui -lQt5Core
+```
+
 This launches a window where you can add SSH connections. Double-click a
-connection to open a terminal tab. Each tab embeds ``konsole`` inside the
-application running ``ssh`` with your saved settings.
+connection to open a terminal tab. Each tab embeds the Konsole KPart running
+``ssh`` with your saved settings.

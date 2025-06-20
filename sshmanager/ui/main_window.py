@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QMenu,
 )
-from PyQt6.QtCore import Qt, QProcess, QPoint
+from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QAction
 
 from ..models import Connection, Config
@@ -81,51 +81,32 @@ class ConnectionDialog(QDialog):
 
 
 class TerminalTab(QWidget):
-    """Embeds KDE Konsole for an SSH connection."""
+    """Embeds KDE Konsole for an SSH connection using KParts."""
 
     def __init__(self, connection: Connection, parent=None) -> None:
         super().__init__(parent)
         self._conn = connection
 
-        self.process = QProcess(self)
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Container widget that will host the Konsole window
-        self.container = QWidget(self)
+        from ..util.konsole_embed import create_konsole_widget
+
+        self.container = create_konsole_widget(
+            user=connection.username,
+            host=connection.host,
+            port=connection.port,
+            key=connection.key_path,
+            initial_cmd=connection.initial_cmd,
+            parent=self,
+        )
+
+        if self.container is None:
+            self.container = QLabel("Failed to load Konsole", self)
+
         layout.addWidget(self.container)
 
-        self.info = QLabel("Starting Konsole...", self)
-        layout.addWidget(self.info)
-
-        # Ensure we have a native window ID for embedding
-        wid = int(self.container.winId())
-
-        cmd = [
-            "konsole",
-            f"--embed={wid}",
-            "--noclose",
-            "-e",
-            "ssh",
-            f"{connection.username}@{connection.host}",
-            "-p",
-            str(connection.port),
-        ]
-        if connection.key_path:
-            cmd.extend(["-i", connection.key_path])
-        if connection.initial_cmd:
-            cmd.extend(["-t", connection.initial_cmd])
-
-        self.process.started.connect(lambda: self.info.setText(""))
-        self.process.errorOccurred.connect(
-            lambda _: self.info.setText("Failed to launch Konsole")
-        )
-        self.process.start(cmd[0], cmd[1:])
-
     def closeEvent(self, event) -> None:
-        if self.process.state() != QProcess.ProcessState.NotRunning:
-            self.process.terminate()
         super().closeEvent(event)
 
 
