@@ -98,7 +98,7 @@ class TerminalTab(QWidget):
             port=connection.port,
             key=connection.key_path,
             initial_cmd=connection.initial_cmd,
-            parent=self,
+            parent=None,
         )
 
         if self.container is None:
