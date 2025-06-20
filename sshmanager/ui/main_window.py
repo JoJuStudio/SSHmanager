@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QMenu,
     QShortcut,
+    QHBoxLayout,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtGui import QKeySequence
@@ -25,6 +26,7 @@ from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
 from ..config import load_config, save_config
+from ..bitwarden import fetch_credentials, is_available as bw_available
 
 
 class ConnectionDialog(QDialog):
@@ -48,6 +50,11 @@ class ConnectionDialog(QDialog):
         self.folder_edit = QLineEdit(self)
         self.key_edit = QLineEdit(self)
         self.cmd_edit = QLineEdit(self)
+        self.bw_item_edit = QLineEdit(self)
+        self.fetch_btn = QPushButton("Fetch", self)
+        self.fetch_btn.clicked.connect(self.fetch_from_bitwarden)
+        if not bw_available():
+            self.fetch_btn.setEnabled(False)
 
         if connection is not None:
             self.label_edit.setText(connection.label)
@@ -67,6 +74,10 @@ class ConnectionDialog(QDialog):
         layout.addRow("Folder", self.folder_edit)
         layout.addRow("SSH Key", self.key_edit)
         layout.addRow("Initial Cmd", self.cmd_edit)
+        bw_layout = QHBoxLayout()
+        bw_layout.addWidget(self.bw_item_edit)
+        bw_layout.addWidget(self.fetch_btn)
+        layout.addRow("Bitwarden Item", bw_layout)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -91,6 +102,29 @@ class ConnectionDialog(QDialog):
             initial_cmd=self.cmd_edit.text() or None,
         )
         super().accept()
+
+    def fetch_from_bitwarden(self) -> None:
+        """Populate fields using a connection stored in Bitwarden."""
+        item = self.bw_item_edit.text().strip()
+        if not item:
+            return
+        cfg = fetch_credentials(item)
+        if not cfg:
+            return
+        if cfg.get("label"):
+            self.label_edit.setText(cfg["label"])
+        if cfg.get("host"):
+            self.host_edit.setText(cfg["host"])
+        if cfg.get("username"):
+            self.user_edit.setText(cfg["username"])
+        if cfg.get("port"):
+            self.port_edit.setText(str(cfg["port"]))
+        if cfg.get("folder"):
+            self.folder_edit.setText(cfg["folder"])
+        if cfg.get("key_path"):
+            self.key_edit.setText(cfg["key_path"])
+        if cfg.get("initial_cmd"):
+            self.cmd_edit.setText(cfg["initial_cmd"])
 
 
 class TerminalTab(QWidget):

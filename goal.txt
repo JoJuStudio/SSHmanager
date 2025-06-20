@@ -11,7 +11,8 @@ A fully GUI-configurable SSH Manager app built with Python and Qt, featuring:
 
     GUI dialogs for adding, editing, and deleting connections
 
-    Optional Bitwarden reference to fetch email + hostname (not credentials)
+    Bitwarden items in a folder named "SSH" store connection configs in the
+    description
 
 🖥️ Main UI Components
 🧭 Layout
@@ -36,7 +37,7 @@ Launch SSH in tabbed terminal	On click, opens in embedded Konsole tab
 Edit port forwarding	Visual interface for adding/removing rules
 Configure per-connection options	SSH user, port, key file, startup commands, etc.
 Collapse/expand sidebar	Like Kate/Dolphin
-Bitwarden fetch button (optional)	Fills email/host from matching Bitwarden item
+Bitwarden fetch button    Loads config JSON from matching Bitwarden item
 ⚙️ Connection Configuration (GUI-based)
 
 Every connection can be edited using a modal dialog with the following fields:
@@ -66,17 +67,13 @@ Every connection can be edited using a modal dialog with the following fields:
 
         Remote: 0.0.0.0:2222 → localhost:22
 
-🧩 Bitwarden Integration (Optional)
+🧩 Bitwarden Integration
 
     Manual entry of Bitwarden item name
 
     “🔄 Fetch from Bitwarden” button
 
-    Only fills:
-
-        email → used as SSH username
-
-        URI/name → used for hostname
+    Connection details stored as JSON in the item's description
 
 🛠️ Tech Stack
 Component	Tool/Library
@@ -92,7 +89,7 @@ App framework	Python 3.x
 
         Opens a form to enter host, user, key, port, etc.
 
-        Optional: enter Bitwarden item name → click "Fetch"
+        Enter Bitwarden item name → click "Fetch"
 
     Click “Save”
 
