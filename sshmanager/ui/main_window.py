@@ -140,6 +140,8 @@ class TerminalTab(QWidget):
             layout.addWidget(self.container)
 
     def closeEvent(self, event) -> None:
+        if hasattr(self, "_check_timer"):
+            self._check_timer.stop()
         super().closeEvent(event)
 
 
