@@ -82,29 +82,36 @@ class ConnectionDialog(QDialog):
 
 
 class TerminalTab(QWidget):
-    """Embeds KDE Konsole for an SSH connection using KParts."""
+    """Embeds KDE Konsole for an SSH connection or local shell."""
 
-    def __init__(self, connection: Connection, parent=None) -> None:
+    def __init__(self, connection: Connection | None = None, parent=None) -> None:
         super().__init__(parent)
         self._conn = connection
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        from ..util.konsole_embed import create_konsole_widget, get_last_error
+        from ..util.konsole_embed import (
+            create_konsole_widget,
+            create_shell_widget,
+            get_last_error,
+        )
 
         # Use a dedicated container so the helper library can set up its own
         # layout without touching this widget's layout. This avoids duplicate
         # layout warnings when opening terminal tabs.
         embed_container = QWidget(self)
-        widget = create_konsole_widget(
-            user=connection.username,
-            host=connection.host,
-            port=connection.port,
-            key=connection.key_path,
-            initial_cmd=connection.initial_cmd,
-            parent=embed_container,
-        )
+        if connection is None:
+            widget = create_shell_widget(parent=embed_container)
+        else:
+            widget = create_konsole_widget(
+                user=connection.username,
+                host=connection.host,
+                port=connection.port,
+                key=connection.key_path,
+                initial_cmd=connection.initial_cmd,
+                parent=embed_container,
+            )
 
         if widget is None:
             error_msg = get_last_error() or "Failed to load Konsole"
@@ -128,9 +135,8 @@ class TerminalTab(QWidget):
         from PyQt5 import sip
         if sip.isdeleted(self._term_widget):
             logging.error(
-                "Konsole widget closed unexpectedly for %s@%s",
-                self._conn.username,
-                self._conn.host,
+                "Konsole widget closed unexpectedly%s",
+                f" for {self._conn.username}@{self._conn.host}" if self._conn else "",
             )
             self._check_timer.stop()
             layout = self.layout()
@@ -175,6 +181,7 @@ class MainWindow(QMainWindow):
         self.tree.itemDoubleClicked.connect(self.open_connection)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
+        self.open_shell_tab()
 
     def load_connections(self):
         self.tree.clear()
@@ -194,6 +201,12 @@ class MainWindow(QMainWindow):
             self.config.connections.append(dlg.conn)
             save_config(self.config)
             self.load_connections()
+
+    def open_shell_tab(self) -> None:
+        """Open a new tab running a local shell."""
+        tab = TerminalTab(None, self)
+        self.tab_widget.addTab(tab, "Terminal")
+        self.tab_widget.setCurrentWidget(tab)
 
     def open_connection(self, item: QTreeWidgetItem):
         conn = item.data(0, Qt.ItemDataRole.UserRole)

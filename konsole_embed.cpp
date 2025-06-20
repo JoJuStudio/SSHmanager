@@ -6,6 +6,7 @@
 #include <KPluginMetaData>
 #include <KParts/ReadOnlyPart>
 #include <kde_terminal_interface.h>
+#include <cstdlib>
 
 extern "C" QWidget* createKonsoleSshWidget(const char* user,
                                             const char* host,
@@ -40,6 +41,33 @@ extern "C" QWidget* createKonsoleSshWidget(const char* user,
             iface->sendInput(QString::fromUtf8(initial_cmd));
             iface->sendInput(QStringLiteral("\n"));
         }
+    }
+
+    return widget;
+}
+
+extern "C" QWidget* createKonsoleShellWidget(const char* shell,
+                                              QWidget* parent = nullptr) {
+    auto result = KPluginFactory::instantiatePlugin<KParts::ReadOnlyPart>(
+        KPluginMetaData(QStringLiteral("konsolepart")), parent);
+    if (!result.plugin) {
+        return nullptr;
+    }
+
+    QWidget* widget = result.plugin->widget();
+    if (parent) {
+        auto layout = new QVBoxLayout(parent);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->addWidget(widget);
+        parent->setLayout(layout);
+    }
+
+    TerminalInterface* iface = qobject_cast<TerminalInterface*>(result.plugin);
+    if (iface) {
+        const char* env_shell = shell && shell[0] ? shell : std::getenv("SHELL");
+        QString prog = env_shell ? QString::fromUtf8(env_shell)
+                                 : QStringLiteral("bash");
+        iface->startProgram(prog, QStringList());
     }
 
     return widget;

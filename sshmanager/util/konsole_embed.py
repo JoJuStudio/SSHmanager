@@ -36,6 +36,8 @@ def _load_lib() -> Optional[CDLL]:
             c_void_p,
         ]
         _lib.createKonsoleSshWidget.restype = c_void_p
+        _lib.createKonsoleShellWidget.argtypes = [c_char_p, c_void_p]
+        _lib.createKonsoleShellWidget.restype = c_void_p
     return _lib
 
 
@@ -58,6 +60,27 @@ def create_konsole_widget(
         port,
         key.encode() if key else None,
         initial_cmd.encode() if initial_cmd else None,
+        parent_ptr,
+    )
+    if not ptr:
+        _last_error = (
+            "Could not start Konsole. Ensure the 'konsole' and 'konsole-kpart' packages are installed."
+        )
+        return None
+    return sip.wrapinstance(ptr, QWidget)
+
+
+def create_shell_widget(
+    shell: str | None = None,
+    parent: Optional[QWidget] = None,
+) -> Optional[QWidget]:
+    """Create a Konsole widget running a local shell."""
+    lib = _load_lib()
+    if lib is None:
+        return None
+    parent_ptr = sip.unwrapinstance(parent) if parent else None
+    ptr = lib.createKonsoleShellWidget(
+        shell.encode() if shell else None,
         parent_ptr,
     )
     if not ptr:
