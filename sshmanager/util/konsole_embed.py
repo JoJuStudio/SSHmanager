@@ -38,6 +38,8 @@ def _load_lib() -> Optional[CDLL]:
         _lib.createKonsoleSshWidget.restype = c_void_p
         _lib.createKonsoleShellWidget.argtypes = [c_char_p, c_void_p]
         _lib.createKonsoleShellWidget.restype = c_void_p
+        _lib.sendInputToWidget.argtypes = [c_void_p, c_char_p]
+        _lib.sendInputToWidget.restype = None
     return _lib
 
 
@@ -89,6 +91,15 @@ def create_shell_widget(
         )
         return None
     return sip.wrapinstance(ptr, QWidget)
+
+
+def send_input(widget: QWidget, command: str) -> None:
+    """Send a command to the given Konsole widget."""
+    lib = _load_lib()
+    if lib is None:
+        return
+    widget_ptr = sip.unwrapinstance(widget)
+    lib.sendInputToWidget(widget_ptr, command.encode())
 
 
 def get_last_error() -> Optional[str]:

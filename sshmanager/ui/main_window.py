@@ -92,9 +92,9 @@ class TerminalTab(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         from ..util.konsole_embed import (
-            create_konsole_widget,
             create_shell_widget,
             get_last_error,
+            send_input,
         )
 
         # Use a dedicated container so the helper library can set up its own
@@ -104,14 +104,7 @@ class TerminalTab(QWidget):
         if connection is None:
             widget = create_shell_widget(parent=embed_container)
         else:
-            widget = create_konsole_widget(
-                user=connection.username,
-                host=connection.host,
-                port=connection.port,
-                key=connection.key_path,
-                initial_cmd=connection.initial_cmd,
-                parent=embed_container,
-            )
+            widget = create_shell_widget(parent=embed_container)
 
         if widget is None:
             error_msg = get_last_error() or "Failed to load Konsole"
@@ -127,6 +120,15 @@ class TerminalTab(QWidget):
             self.container = embed_container
             layout.addWidget(embed_container)
             self._term_widget = widget
+            if connection is not None:
+                cmd_parts = ["ssh"]
+                if connection.key_path:
+                    cmd_parts.extend(["-i", connection.key_path])
+                cmd_parts.extend([f"{connection.username}@{connection.host}", "-p", str(connection.port)])
+                ssh_cmd = " ".join(cmd_parts)
+                send_input(widget, f"clear && {ssh_cmd}")
+                if connection.initial_cmd:
+                    QTimer.singleShot(1000, lambda: send_input(widget, connection.initial_cmd))
             self._check_timer = QTimer(self)
             self._check_timer.timeout.connect(self._check_widget)
             self._check_timer.start(2000)

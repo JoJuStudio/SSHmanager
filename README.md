@@ -54,5 +54,6 @@ g++ -fPIC -shared konsole_embed.cpp -o sshmanager/libkonsole_embed.so \
 ```
 
 This launches a window where you can add SSH connections. Double-click a
-connection to open a terminal tab. Each tab embeds the Konsole KPart running
-``ssh`` with your saved settings.
+connection to open a terminal tab. Each tab embeds the Konsole KPart. The
+application clears the terminal and sends the ``ssh`` command from Python,
+rather than launching it inside the C++ helper.
