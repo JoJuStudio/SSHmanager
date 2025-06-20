@@ -92,19 +92,25 @@ class TerminalTab(QWidget):
 
         from ..util.konsole_embed import create_konsole_widget
 
-        self.container = create_konsole_widget(
+        # Use a dedicated container so the helper library can set up its own
+        # layout without touching this widget's layout. This avoids duplicate
+        # layout warnings when opening terminal tabs.
+        embed_container = QWidget(self)
+        widget = create_konsole_widget(
             user=connection.username,
             host=connection.host,
             port=connection.port,
             key=connection.key_path,
             initial_cmd=connection.initial_cmd,
-            parent=self,
+            parent=embed_container,
         )
 
-        if self.container is None:
+        if widget is None:
             self.container = QLabel("Failed to load Konsole", self)
-
-        layout.addWidget(self.container)
+            layout.addWidget(self.container)
+        else:
+            self.container = embed_container
+            layout.addWidget(embed_container)
 
     def closeEvent(self, event) -> None:
         super().closeEvent(event)
