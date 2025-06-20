@@ -61,10 +61,11 @@ rather than launching it inside the C++ helper.
 
 ### Bitwarden integration
 
-Click the **Login** button to provide a Bitwarden API token and optional server
-URL. The token can be generated in the web vault under Settings → API Key.
-After entering the token, connections are loaded from items placed in a folder
-named `SSH`. Only the item's login **username** and **URI** fields are used.
+Click the **Login** button and enter your Bitwarden email address and master
+password. An optional server URL can be provided if you're using a self-hosted
+Vaultwarden instance. Once authenticated, connections are loaded from items
+placed in a folder named `SSH`. Only the item's login **username** and **URI**
+fields are used.
 
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.
