@@ -18,8 +18,10 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QDialogButtonBox,
     QMenu,
+    QShortcut,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
@@ -182,6 +184,12 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(add_btn)
         add_btn.clicked.connect(self.add_connection)
 
+        # Shortcuts for switching tabs
+        next_tab_shortcut = QShortcut(QKeySequence("Ctrl+Tab"), self)
+        next_tab_shortcut.activated.connect(self.next_tab)
+        prev_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
+        prev_tab_shortcut.activated.connect(self.prev_tab)
+
         self.load_connections()
         self.tree.itemDoubleClicked.connect(self.open_connection)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -227,6 +235,20 @@ class MainWindow(QMainWindow):
             widget.close()
             widget.deleteLater()
         self.tab_widget.removeTab(index)
+
+    def next_tab(self) -> None:
+        """Switch to the next tab."""
+        count = self.tab_widget.count()
+        if count:
+            new_index = (self.tab_widget.currentIndex() + 1) % count
+            self.tab_widget.setCurrentIndex(new_index)
+
+    def prev_tab(self) -> None:
+        """Switch to the previous tab."""
+        count = self.tab_widget.count()
+        if count:
+            new_index = (self.tab_widget.currentIndex() - 1) % count
+            self.tab_widget.setCurrentIndex(new_index)
 
     def show_context_menu(self, pos: QPoint) -> None:
         item = self.tree.itemAt(pos)
