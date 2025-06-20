@@ -206,15 +206,19 @@ class MainWindow(QMainWindow):
         menu.exec(self.tree.viewport().mapToGlobal(pos))
 
     def login_bitwarden(self) -> None:
-        """Prompt for an API token and reload connections."""
+        """Prompt for credentials and reload connections."""
         dlg = LoginDialog(self)
         if dlg.exec() != dlg.Accepted:
             return
-        token, server = dlg.values()
-        if not bitwarden.login(token, server):
-            QMessageBox.critical(self, "Login Failed", "Invalid Bitwarden token")
+        email, password, server = dlg.values()
+        if not bitwarden.login(email, password, server):
+            QMessageBox.critical(
+                self,
+                "Login Failed",
+                "Invalid Bitwarden credentials",
+            )
             return
-        self.statusBar().showMessage("Bitwarden token set", 3000)
+        self.statusBar().showMessage("Bitwarden login successful", 3000)
         self.config = load_config()
         self.load_connections()
 
