@@ -1,6 +1,6 @@
 # SSH Manager
 
-A simple graphical SSH connection manager built with PyQt6. This is a starting
+A simple graphical SSH connection manager built with PyQt5. This is a starting
 implementation based on the project description in `goal.txt`.
 
 ## Features
@@ -14,7 +14,7 @@ implementation based on the project description in `goal.txt`.
 ## Requirements
 
 - Python 3.10+
-- PyQt6
+- PyQt5
 - Qt5 development packages and `libkf5parts-dev` to build the Konsole wrapper
 
 Install Python dependencies with:

@@ -80,7 +80,7 @@ Every connection can be edited using a modal dialog with the following fields:
 
 🛠️ Tech Stack
 Component	Tool/Library
-GUI	PyQt6 / PySide6
+GUI	PyQt5 / PySide6
 Terminal embed	KonsolePart (KDE terminal)
 SSH sessions	System ssh
 Config storage	JSON or SQLite (via GUI)

@@ -4,8 +4,8 @@ from ctypes import CDLL, c_void_p, c_char_p, c_int
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtWidgets import QWidget
-from PyQt6 import sip
+from PyQt5.QtWidgets import QWidget
+from PyQt5 import sip
 
 
 _lib: Optional[CDLL] = None
