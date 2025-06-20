@@ -163,6 +163,9 @@ class MainWindow(QMainWindow):
         self.tree = QTreeWidget(self)
         self.tree.setHeaderHidden(True)
         self.tab_widget = QTabWidget(self)
+        self.tab_widget.setTabsClosable(True)
+        self.tab_widget.setMovable(True)
+        self.tab_widget.tabCloseRequested.connect(self.close_tab)
 
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.tab_widget)
@@ -216,6 +219,14 @@ class MainWindow(QMainWindow):
             tab = TerminalTab(conn, self)
             self.tab_widget.addTab(tab, conn.label)
             self.tab_widget.setCurrentWidget(tab)
+
+    def close_tab(self, index: int) -> None:
+        """Close and delete the tab at the given index."""
+        widget = self.tab_widget.widget(index)
+        if widget is not None:
+            widget.close()
+            widget.deleteLater()
+        self.tab_widget.removeTab(index)
 
     def show_context_menu(self, pos: QPoint) -> None:
         item = self.tree.itemAt(pos)
