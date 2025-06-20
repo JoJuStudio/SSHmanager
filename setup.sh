@@ -5,7 +5,8 @@ set -e
 
 # Compile the helper library used to embed Konsole via KParts.
 
-g++ -fPIC -shared konsole_embed.cpp -o libkonsole_embed.so \
+mkdir -p sshmanager
+g++ -fPIC -shared konsole_embed.cpp -o sshmanager/libkonsole_embed.so \
   -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets \
   -I/usr/include/x86_64-linux-gnu/qt5/QtGui \
   -I/usr/include/x86_64-linux-gnu/qt5/QtCore \
