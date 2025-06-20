@@ -11,6 +11,7 @@ implementation based on the project description in `goal.txt`.
 - Dialog for adding new connections
 - Context menu to edit or delete connections
 - Connections saved to `~/.sshmanager/connections.json`
+- `Ctrl+T` opens a new empty terminal tab
 
 ## Requirements
 
