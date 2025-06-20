@@ -190,6 +190,10 @@ class MainWindow(QMainWindow):
         prev_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
         prev_tab_shortcut.activated.connect(self.prev_tab)
 
+        # Shortcut for opening a new local terminal tab
+        new_tab_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
+        new_tab_shortcut.activated.connect(self.open_shell_tab)
+
         self.load_connections()
         self.tree.itemDoubleClicked.connect(self.open_connection)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
