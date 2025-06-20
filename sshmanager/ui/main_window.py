@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QSplitter,
-    QPlainTextEdit,
     QPushButton,
     QToolBar,
     QDialog,
@@ -46,17 +45,28 @@ class ConnectionDialog(QDialog):
         self.user_edit = QLineEdit(self)
         self.port_edit = QLineEdit(self)
         self.port_edit.setText("22")
+        self.folder_edit = QLineEdit(self)
+        self.key_edit = QLineEdit(self)
+        self.cmd_edit = QLineEdit(self)
 
         if connection is not None:
             self.label_edit.setText(connection.label)
             self.host_edit.setText(connection.host)
             self.user_edit.setText(connection.username)
             self.port_edit.setText(str(connection.port))
+            self.folder_edit.setText(connection.folder)
+            if connection.key_path:
+                self.key_edit.setText(connection.key_path)
+            if connection.initial_cmd:
+                self.cmd_edit.setText(connection.initial_cmd)
 
         layout.addRow("Label", self.label_edit)
         layout.addRow("Host", self.host_edit)
         layout.addRow("Username", self.user_edit)
         layout.addRow("Port", self.port_edit)
+        layout.addRow("Folder", self.folder_edit)
+        layout.addRow("SSH Key", self.key_edit)
+        layout.addRow("Initial Cmd", self.cmd_edit)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -76,9 +86,9 @@ class ConnectionDialog(QDialog):
             host=self.host_edit.text(),
             username=self.user_edit.text(),
             port=port,
-            folder=self._orig.folder if self._orig else "Default",
-            key_path=self._orig.key_path if self._orig else None,
-            initial_cmd=self._orig.initial_cmd if self._orig else None,
+            folder=self.folder_edit.text() or "Default",
+            key_path=self.key_edit.text() or None,
+            initial_cmd=self.cmd_edit.text() or None,
         )
         super().accept()
 

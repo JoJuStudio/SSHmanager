@@ -8,7 +8,7 @@ implementation based on the project description in `goal.txt`.
 - Sidebar showing folders and saved connections
 - Tabbed area for launching terminals embedded via KDE Konsole
 - Opens a local terminal tab at startup
-- Dialog for adding new connections
+- Dialog for adding new connections, including folder, SSH key, and optional initial command
 - Context menu to edit or delete connections
 - Connections saved to `~/.sshmanager/connections.json`
 - `Ctrl+T` opens a new empty terminal tab
