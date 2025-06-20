@@ -13,6 +13,7 @@ import json
 import logging
 from typing import Any, Optional, List
 from urllib import request, error, parse
+from uuid import uuid4
 
 from .models import Connection
 
@@ -24,7 +25,13 @@ _server: str = _DEFAULT_SERVER
 _last_error: Optional[str] = None
 
 
-def login(email: str, password: str, server: str | None = None) -> bool:
+def login(
+    email: str,
+    password: str,
+    server: str | None = None,
+    device_name: str | None = None,
+    device_identifier: str | None = None,
+) -> bool:
     """Authenticate using email and master password.
 
     Parameters
@@ -36,6 +43,12 @@ def login(email: str, password: str, server: str | None = None) -> bool:
     server:
         Base URL of the Vaultwarden instance. Defaults to the official
         Bitwarden cloud.
+    device_name:
+        Optional human readable name for this client. Defaults to
+        "SSH Manager".
+    device_identifier:
+        Optional unique identifier for the device. A random value is
+        generated when omitted.
     """
 
     global _token, _server, _last_error
@@ -44,6 +57,7 @@ def login(email: str, password: str, server: str | None = None) -> bool:
         _last_error = "Email and password are required"
         return False
     _server = server or _DEFAULT_SERVER
+    device_id = device_identifier or uuid4().hex
     data = parse.urlencode(
         {
             "grant_type": "password",
@@ -51,6 +65,9 @@ def login(email: str, password: str, server: str | None = None) -> bool:
             "password": password,
             "scope": "api offline_access",
             "client_id": "desktop",
+            "deviceType": 8,
+            "deviceIdentifier": device_id,
+            "deviceName": device_name or "SSH Manager",
         }
     ).encode()
     url = f"{_server}/identity/connect/token"
