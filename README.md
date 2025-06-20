@@ -32,7 +32,7 @@ python -m sshmanager.main
 ### Building the Konsole wrapper
 
 After installing the Qt and KF5 development packages, run the provided setup
-script to compile `libkonsole_embed.so`:
+script to compile `libkonsole_embed.so` inside the `sshmanager` package:
 
 ```bash
 ./setup.sh
@@ -42,7 +42,7 @@ The script simply runs the `g++` command shown below. You only need to run it
 once unless you modify `konsole_embed.cpp`.
 
 ```bash
-g++ -fPIC -shared konsole_embed.cpp -o libkonsole_embed.so \
+g++ -fPIC -shared konsole_embed.cpp -o sshmanager/libkonsole_embed.so \
   -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets \
   -I/usr/include/x86_64-linux-gnu/qt5/QtGui \
   -I/usr/include/x86_64-linux-gnu/qt5/QtCore \

@@ -1,0 +1,4 @@
+sshmanager/libkonsole_embed.so
+__pycache__/
+sshmanager/__pycache__/
+sshmanager/ui/__pycache__/
