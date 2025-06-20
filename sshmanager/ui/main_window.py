@@ -212,10 +212,11 @@ class MainWindow(QMainWindow):
             return
         email, password, server = dlg.values()
         if not bitwarden.login(email, password, server):
+            err = bitwarden.get_last_error() or "Invalid Bitwarden credentials"
             QMessageBox.critical(
                 self,
                 "Login Failed",
-                "Invalid Bitwarden credentials",
+                err,
             )
             return
         self.statusBar().showMessage("Bitwarden login successful", 3000)

@@ -20,6 +20,8 @@ from .models import Connection
 _DEFAULT_SERVER = "https://vault.bitwarden.com"
 _token: Optional[str] = None
 _server: str = _DEFAULT_SERVER
+# Store the most recent login error message so the UI can present it
+_last_error: Optional[str] = None
 
 
 def login(email: str, password: str, server: str | None = None) -> bool:
@@ -36,9 +38,11 @@ def login(email: str, password: str, server: str | None = None) -> bool:
         Bitwarden cloud.
     """
 
+    global _token, _server, _last_error
+    _last_error = None
     if not email or not password:
+        _last_error = "Email and password are required"
         return False
-    global _token, _server
     _server = server or _DEFAULT_SERVER
     data = parse.urlencode(
         {
@@ -55,11 +59,23 @@ def login(email: str, password: str, server: str | None = None) -> bool:
     try:
         with request.urlopen(req) as resp:
             resp_data = json.loads(resp.read().decode())
+    except error.HTTPError as exc:
+        body = exc.read().decode()
+        try:
+            resp_data = json.loads(body)
+        except Exception:
+            resp_data = {}
+        msg = resp_data.get("error_description") or body.strip()
+        _last_error = msg or f"HTTP {exc.code}: {exc.reason}"
+        logging.error("Bitwarden login HTTP error: %s", exc)
+        return False
     except error.URLError as exc:
+        _last_error = f"Network error: {exc.reason}"
         logging.error("Bitwarden login failed: %s", exc)
         return False
     token = resp_data.get("access_token")
     if not token:
+        _last_error = resp_data.get("error_description") or "Invalid credentials"
         logging.error("Bitwarden login response missing access_token")
         return False
     _token = token
@@ -75,6 +91,11 @@ def get_status() -> str:
 
 def is_unlocked() -> bool:
     return _token is not None
+
+
+def get_last_error() -> Optional[str]:
+    """Return the most recent error message from :func:`login`."""
+    return _last_error
 
 
 def _api_request(path: str) -> Any:
