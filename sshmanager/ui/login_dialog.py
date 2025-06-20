@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QFormLayout,
 )
+from PyQt5.QtGui import QIcon
 
 
 class LoginDialog(QDialog):
@@ -15,6 +16,14 @@ class LoginDialog(QDialog):
         self.email_edit = QLineEdit(self)
         self.password_edit = QLineEdit(self)
         self.password_edit.setEchoMode(QLineEdit.Password)
+        # Add an eye icon action to toggle password visibility
+        self._pw_visible = False
+        icon = QIcon.fromTheme("view-password")
+        self._toggle_action = self.password_edit.addAction(
+            icon, QLineEdit.TrailingPosition
+        )
+        self._toggle_action.setCheckable(True)
+        self._toggle_action.toggled.connect(self._toggle_password)
         self.server_edit = QLineEdit(self)
         self.server_edit.setPlaceholderText("https://vault.bitwarden.com")
         self.email_edit.setFocus()
@@ -42,3 +51,13 @@ class LoginDialog(QDialog):
             self.password_edit.text(),
             server,
         )
+
+    def _toggle_password(self, checked: bool) -> None:
+        """Show or hide the password field contents."""
+        self._pw_visible = checked
+        mode = QLineEdit.Normal if checked else QLineEdit.Password
+        self.password_edit.setEchoMode(mode)
+        icon_name = "view-hidden" if checked else "view-password"
+        icon = QIcon.fromTheme(icon_name)
+        if not icon.isNull():
+            self._toggle_action.setIcon(icon)
