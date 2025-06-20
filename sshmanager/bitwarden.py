@@ -5,6 +5,27 @@ from shutil import which
 from typing import Any, Optional
 
 
+def get_status() -> Optional[str]:
+    """Return the Bitwarden CLI login status using ``bw status``.
+
+    Returns ``"unlocked"`` when the vault is unlocked, ``"locked"`` when the
+    CLI is logged in but the vault is locked, ``"unauthenticated"`` when not
+    logged in, or ``None`` if the status could not be determined.
+    """
+    try:
+        output = _run_bw(["status"])
+        data = json.loads(output)
+        return data.get("status")
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        logging.error("Failed to check Bitwarden status: %s", exc)
+        return None
+
+
+def is_unlocked() -> bool:
+    """Return ``True`` if the Bitwarden vault is unlocked."""
+    return get_status() == "unlocked"
+
+
 def is_available() -> bool:
     """Return True if the Bitwarden CLI (`bw`) is available."""
     return which("bw") is not None
@@ -44,6 +65,15 @@ def fetch_credentials(item: str) -> Optional[dict[str, Any]]:
     """
     if not is_available():
         logging.error("Bitwarden CLI not found in PATH")
+        return None
+    status = get_status()
+    if status != "unlocked":
+        if status == "locked":
+            logging.error("Bitwarden vault is locked. Run 'bw unlock' first")
+        elif status == "unauthenticated":
+            logging.error("Bitwarden CLI not logged in. Run 'bw login' first")
+        else:
+            logging.error("Unable to determine Bitwarden login status")
         return None
     folder_id = _get_ssh_folder_id()
     if folder_id is None:

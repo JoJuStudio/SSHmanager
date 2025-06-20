@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QDialogButtonBox,
+    QMessageBox,
     QMenu,
     QShortcut,
     QHBoxLayout,
@@ -26,7 +27,11 @@ from PyQt5.QtWidgets import QAction
 
 from ..models import Connection, Config
 from ..config import load_config, save_config
-from ..bitwarden import fetch_credentials, is_available as bw_available
+from ..bitwarden import (
+    fetch_credentials,
+    is_available as bw_available,
+    is_unlocked as bw_unlocked,
+)
 
 
 class ConnectionDialog(QDialog):
@@ -53,7 +58,7 @@ class ConnectionDialog(QDialog):
         self.bw_item_edit = QLineEdit(self)
         self.fetch_btn = QPushButton("Fetch", self)
         self.fetch_btn.clicked.connect(self.fetch_from_bitwarden)
-        if not bw_available():
+        if not (bw_available() and bw_unlocked()):
             self.fetch_btn.setEnabled(False)
 
         if connection is not None:
@@ -110,6 +115,11 @@ class ConnectionDialog(QDialog):
             return
         cfg = fetch_credentials(item)
         if not cfg:
+            QMessageBox.warning(
+                self,
+                "Bitwarden",
+                "Failed to fetch item. Ensure you are logged in and unlocked.",
+            )
             return
         if cfg.get("label"):
             self.label_edit.setText(cfg["label"])
