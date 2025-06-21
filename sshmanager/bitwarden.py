@@ -187,3 +187,12 @@ def sync() -> Any:
     if not is_unlocked():
         return None
     return _run_bw(["sync"])
+
+
+def logout() -> None:
+    """Clear the current session and temporary config."""
+    global _session, _config_dir
+    _session = None
+    if _config_dir:
+        shutil.rmtree(_config_dir, ignore_errors=True)
+        _config_dir = None
