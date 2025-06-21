@@ -15,10 +15,11 @@ from PyQt5.QtWidgets import (
     QMenu,
     QShortcut,
     QMessageBox,
+    QToolButton,
+    QAction,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtGui import QKeySequence, QIcon
 import keyring
 
 from ..models import Connection, Config
@@ -125,9 +126,12 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Main", self)
         self.addToolBar(toolbar)
 
-        login_act = QAction("Login", self)
-        login_act.triggered.connect(self.login_bitwarden)
-        toolbar.addAction(login_act)
+        self.profile_btn = QToolButton(self)
+        self.profile_btn.setIcon(QIcon.fromTheme("user-identity"))
+        self.profile_menu = QMenu(self.profile_btn)
+        self.profile_btn.setMenu(self.profile_menu)
+        self.profile_btn.setPopupMode(QToolButton.InstantPopup)
+        toolbar.addWidget(self.profile_btn)
 
         # Shortcuts for switching tabs
         next_tab_shortcut = QShortcut(QKeySequence("Ctrl+Tab"), self)
@@ -144,6 +148,7 @@ class MainWindow(QMainWindow):
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
         self.open_shell_tab()
+        self.update_ui_state()
 
     def load_connections(self):
         self.tree.clear()
@@ -226,4 +231,26 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Bitwarden login successful", 3000)
         self.config = load_config()
         self.load_connections()
+        self.update_ui_state()
 
+    def logout_bitwarden(self) -> None:
+        """Log out of Bitwarden and disable the UI."""
+        bitwarden.logout()
+        self.config = load_config()
+        self.load_connections()
+        self.statusBar().showMessage("Logged out", 3000)
+        self.update_ui_state()
+
+    def update_ui_state(self) -> None:
+        """Enable or disable widgets based on login status."""
+        logged_in = bitwarden.is_unlocked()
+        self.splitter.setEnabled(logged_in)
+        self.profile_menu.clear()
+        if logged_in:
+            act = QAction("Logout", self)
+            act.triggered.connect(self.logout_bitwarden)
+            self.profile_menu.addAction(act)
+        else:
+            act = QAction("Login", self)
+            act.triggered.connect(self.login_bitwarden)
+            self.profile_menu.addAction(act)
