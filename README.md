@@ -73,6 +73,9 @@ The application does not store your Bitwarden session. Only the email and
 server address are saved using the system keyring so the login dialog can be
 pre-filled on the next launch. The underlying ``bw`` CLI configuration is kept
 separate, so existing command line logins are unaffected.
+If a ``BW_SESSION`` environment variable is set from another ``bw``
+session, it is cleared during login so the application remains fully
+independent of any terminal usage.
 
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.
