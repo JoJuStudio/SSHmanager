@@ -40,10 +40,16 @@ def _run_bw(args: List[str], parse_json: bool = True) -> Any:
     env = os.environ.copy()
     if _server:
         env["BW_SERVER"] = _server
+    else:
+        env.pop("BW_SERVER", None)
     if _session:
         env["BW_SESSION"] = _session
+    else:
+        env.pop("BW_SESSION", None)
     if _config_dir:
-        env["BW_CONFIGDIR"] = _config_dir
+        env["BW_CONFIG_DIR"] = _config_dir
+    else:
+        env.pop("BW_CONFIG_DIR", None)
     try:
         result = subprocess.run(
             ["bw", *args],
@@ -93,8 +99,9 @@ def login(
     _server = server or _DEFAULT_SERVER
     env = os.environ.copy()
     env.pop("BW_SESSION", None)
+    env.pop("BW_CONFIG_DIR", None)
     env["BW_SERVER"] = _server
-    env["BW_CONFIGDIR"] = _config_dir
+    env["BW_CONFIG_DIR"] = _config_dir
     try:
         result = subprocess.run(
             ["bw", "login", email, password, "--raw"],
