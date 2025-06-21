@@ -18,6 +18,11 @@ def main() -> None:
         format="%(asctime)s %(levelname)s: %(message)s",
     )
 
+    # Ensure any Bitwarden CLI environment from the launching shell does not
+    # leak into the application or embedded terminals.
+    os.environ.pop("BW_SESSION", None)
+    os.environ.pop("BW_CONFIG_DIR", None)
+
     def handle_exception(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)

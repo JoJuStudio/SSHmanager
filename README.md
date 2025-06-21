@@ -79,5 +79,8 @@ independent of any terminal usage. Any ``BW_CONFIG_DIR`` variable is
 also ignored so the app uses an isolated temporary directory for its own
 ``bw`` configuration.
 
+These variables are removed from the application's environment at startup so
+any embedded terminals do not inherit them.
+
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.
