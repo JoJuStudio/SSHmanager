@@ -61,8 +61,18 @@ def _prelogin(email: str) -> Optional[Tuple[int, int]]:
     kdf = info.get("Kdf")
     iterations = info.get("KdfIterations")
     if kdf is None or iterations is None:
+        # Newer Vaultwarden releases return lowercase field names
+        info_l = {k.lower(): v for k, v in info.items()}
+        if kdf is None:
+            kdf = info_l.get("kdf")
+        if iterations is None:
+            iterations = (
+                info_l.get("kdfiterations")
+                or info_l.get("kdf_iterations")
+            )
+    if kdf is None or iterations is None:
         _last_error = "Prelogin response missing fields"
-        logging.error("Bitwarden prelogin response missing fields")
+        logging.error("Bitwarden prelogin response missing fields: %s", info)
         return None
     return int(kdf), int(iterations)
 
