@@ -47,9 +47,9 @@ def _run_bw(args: List[str], parse_json: bool = True) -> Any:
     else:
         env.pop("BW_SESSION", None)
     if _config_dir:
-        env["BW_CONFIG_DIR"] = _config_dir
+        env["BW_APPDATA_DIR"] = _config_dir
     else:
-        env.pop("BW_CONFIG_DIR", None)
+        env.pop("BW_APPDATA_DIR", None)
     try:
         result = subprocess.run(
             ["bw", *args],
@@ -106,7 +106,7 @@ def login(
     # application remains isolated from command line usage.
     env.pop("BW_SESSION", None)
     env["BW_SERVER"] = _server
-    env["BW_CONFIG_DIR"] = _config_dir
+    env["BW_APPDATA_DIR"] = _config_dir
     try:
         result = subprocess.run(
             ["bw", "login", email, password, "--raw"],
