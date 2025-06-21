@@ -92,6 +92,7 @@ def login(
 
     _server = server or _DEFAULT_SERVER
     env = os.environ.copy()
+    env.pop("BW_SESSION", None)
     env["BW_SERVER"] = _server
     env["BW_CONFIGDIR"] = _config_dir
     try:
