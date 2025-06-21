@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QAction
+import keyring
 
 from ..models import Connection, Config
 from ..config import load_config
@@ -219,6 +220,9 @@ class MainWindow(QMainWindow):
                 err,
             )
             return
+        # Store the email and server in the system keyring for convenience
+        keyring.set_password("sshmanager", "email", email)
+        keyring.set_password("sshmanager", "server", server or "")
         self.statusBar().showMessage("Bitwarden login successful", 3000)
         self.config = load_config()
         self.load_connections()

@@ -11,6 +11,9 @@ import json
 import logging
 import os
 import subprocess
+import tempfile
+import shutil
+import atexit
 from typing import Any, List, Optional
 
 from .models import Connection
@@ -20,6 +23,16 @@ _DEFAULT_SERVER = "https://vault.bitwarden.com"
 _session: Optional[str] = None
 _server: str = _DEFAULT_SERVER
 _last_error: Optional[str] = None
+_config_dir: Optional[str] = None
+
+
+def _cleanup() -> None:
+    """Remove the temporary Bitwarden config directory on exit."""
+    if _config_dir:
+        shutil.rmtree(_config_dir, ignore_errors=True)
+
+
+atexit.register(_cleanup)
 
 
 def _run_bw(args: List[str], parse_json: bool = True) -> Any:
@@ -29,6 +42,8 @@ def _run_bw(args: List[str], parse_json: bool = True) -> Any:
         env["BW_SERVER"] = _server
     if _session:
         env["BW_SESSION"] = _session
+    if _config_dir:
+        env["BW_CONFIGDIR"] = _config_dir
     try:
         result = subprocess.run(
             ["bw", *args],
@@ -62,9 +77,14 @@ def login(
 ) -> bool:
     """Authenticate using the Bitwarden CLI."""
 
-    global _session, _server, _last_error
+    global _session, _server, _last_error, _config_dir
     _last_error = None
     _session = None
+
+    # Use a temporary config directory so the user's bw CLI state is untouched
+    if _config_dir:
+        shutil.rmtree(_config_dir, ignore_errors=True)
+    _config_dir = tempfile.mkdtemp(prefix="sshmanager_bw_")
 
     if not email or not password:
         _last_error = "Email and password are required"
@@ -73,6 +93,7 @@ def login(
     _server = server or _DEFAULT_SERVER
     env = os.environ.copy()
     env["BW_SERVER"] = _server
+    env["BW_CONFIGDIR"] = _config_dir
     try:
         result = subprocess.run(
             ["bw", "login", email, password, "--raw"],

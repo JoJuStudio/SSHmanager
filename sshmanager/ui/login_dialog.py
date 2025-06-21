@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
 )
 from PyQt5.QtGui import QIcon
+import keyring
 
 
 class LoginDialog(QDialog):
@@ -26,6 +27,13 @@ class LoginDialog(QDialog):
         self._toggle_action.toggled.connect(self._toggle_password)
         self.server_edit = QLineEdit(self)
         self.server_edit.setPlaceholderText("https://vault.bitwarden.com")
+        # Pre-fill fields from the system keyring when available
+        saved_email = keyring.get_password("sshmanager", "email")
+        if saved_email:
+            self.email_edit.setText(saved_email)
+        saved_server = keyring.get_password("sshmanager", "server")
+        if saved_server:
+            self.server_edit.setText(saved_server)
         self.email_edit.setFocus()
 
         layout = QFormLayout(self)
