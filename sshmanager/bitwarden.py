@@ -31,6 +31,7 @@ _last_error: Optional[str] = None
 
 def _prelogin(email: str) -> Optional[Tuple[int, int]]:
     """Retrieve KDF parameters for the account."""
+    global _last_error
     url = f"{_server}/identity/accounts/prelogin"
     data = json.dumps({"email": email}).encode()
     req = request.Request(url, data=data)
@@ -38,12 +39,29 @@ def _prelogin(email: str) -> Optional[Tuple[int, int]]:
     try:
         with request.urlopen(req) as resp:
             info = json.loads(resp.read().decode())
+    except error.HTTPError as exc:
+        body = exc.read().decode()
+        try:
+            resp_data = json.loads(body)
+        except Exception:
+            resp_data = {}
+        msg = resp_data.get("error") or body.strip()
+        if msg:
+            _last_error = f"HTTP {exc.code}: {msg}"
+        else:
+            _last_error = f"HTTP {exc.code}: {exc.reason}"
+        logging.error(
+            "Bitwarden prelogin HTTP error %s %s: %s", exc.code, exc.reason, msg
+        )
+        return None
     except error.URLError as exc:
-        logging.error("Bitwarden prelogin failed: %s", exc)
+        _last_error = f"Network error: {exc.reason}"
+        logging.error("Bitwarden prelogin failed for %s: %s", _server, exc)
         return None
     kdf = info.get("Kdf")
     iterations = info.get("KdfIterations")
     if kdf is None or iterations is None:
+        _last_error = "Prelogin response missing fields"
         logging.error("Bitwarden prelogin response missing fields")
         return None
     return int(kdf), int(iterations)
@@ -97,6 +115,7 @@ def login(
 
     global _token, _server, _last_error
     _last_error = None
+    _token = None
     if not email or not password:
         _last_error = "Email and password are required"
         return False
@@ -109,7 +128,12 @@ def login(
         return False
     kdf, iterations = kdf_info
 
-    password_hash = _hash_password(email, password, kdf, iterations)
+    try:
+        password_hash = _hash_password(email, password, kdf, iterations)
+    except ValueError as exc:
+        _last_error = str(exc)
+        logging.error("Bitwarden password hashing failed: %s", exc)
+        return False
 
     data = parse.urlencode(
         {
@@ -136,12 +160,17 @@ def login(
         except Exception:
             resp_data = {}
         msg = resp_data.get("error_description") or body.strip()
-        _last_error = msg or f"HTTP {exc.code}: {exc.reason}"
-        logging.error("Bitwarden login HTTP error: %s", exc)
+        if msg:
+            _last_error = f"HTTP {exc.code}: {msg}"
+        else:
+            _last_error = f"HTTP {exc.code}: {exc.reason}"
+        logging.error(
+            "Bitwarden login HTTP error %s %s: %s", exc.code, exc.reason, msg
+        )
         return False
     except error.URLError as exc:
         _last_error = f"Network error: {exc.reason}"
-        logging.error("Bitwarden login failed: %s", exc)
+        logging.error("Bitwarden login failed for %s: %s", _server, exc)
         return False
     token = resp_data.get("access_token")
     if not token:
