@@ -69,5 +69,10 @@ tool to retrieve items. Once authenticated, connections are loaded from items
 placed in a folder named `SSH`. Only the item's login **username** and **URI**
 fields are used.
 
+The application does not store your Bitwarden session. Only the email and
+server address are saved using the system keyring so the login dialog can be
+pre-filled on the next launch. The underlying ``bw`` CLI configuration is kept
+separate, so existing command line logins are unaffected.
+
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.
