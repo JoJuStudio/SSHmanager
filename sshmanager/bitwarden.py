@@ -97,10 +97,9 @@ def login(
         return False
 
     _server = server or _DEFAULT_SERVER
-    # Clear any bw CLI variables from our process environment so this session
-    # remains isolated from command line usage.
-    os.environ.pop("BW_SESSION", None)
-    os.environ.pop("BW_CONFIG_DIR", None)
+    # Use a clean environment when invoking the CLI to avoid interfering with
+    # any active command line sessions, but do not modify this process
+    # environment so embedded terminals can continue using the user's session.
 
     env = os.environ.copy()
     env["BW_SERVER"] = _server
@@ -204,8 +203,6 @@ def logout() -> None:
     """Clear the current session and temporary config."""
     global _session, _config_dir
     _session = None
-    os.environ.pop("BW_SESSION", None)
-    os.environ.pop("BW_CONFIG_DIR", None)
     if _config_dir:
         shutil.rmtree(_config_dir, ignore_errors=True)
         _config_dir = None
