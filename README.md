@@ -76,6 +76,8 @@ separate, so existing command line logins are unaffected.
 If a ``BW_SESSION`` environment variable is set from another ``bw``
 session, it is cleared during login so the application remains fully
 independent of any terminal usage.
+Any ``BW_CONFIG_DIR`` variable is also removed so the app uses an
+isolated temporary directory for its own ``bw`` configuration.
 
 Each item name becomes the connection label. Only the URL and username are
 stored, and the default SSH port 22 is used.
