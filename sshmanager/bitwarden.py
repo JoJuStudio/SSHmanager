@@ -102,6 +102,9 @@ def login(
     # environment so embedded terminals can continue using the user's session.
 
     env = os.environ.copy()
+    # Ensure any existing session token from the user's shell is ignored so the
+    # application remains isolated from command line usage.
+    env.pop("BW_SESSION", None)
     env["BW_SERVER"] = _server
     env["BW_CONFIG_DIR"] = _config_dir
     try:
