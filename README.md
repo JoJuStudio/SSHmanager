@@ -10,7 +10,7 @@ loaded directly from Bitwarden and no data is stored locally.
 - Opens a local terminal tab at startup
 - `Ctrl+T` opens a new empty terminal tab
 - Bitwarden integration loads connection configs from items stored in
-  the `SSH` folder via the Bitwarden API
+  the `SSH` folder via the Bitwarden CLI
 - No local configuration file is written
 
 ## Requirements
@@ -64,7 +64,8 @@ rather than launching it inside the C++ helper.
 
 Click the **Login** button and enter your Bitwarden email address and master
 password. An optional server URL can be provided if you're using a self-hosted
-Vaultwarden instance. Once authenticated, connections are loaded from items
+Vaultwarden instance. The application interacts with the ``bw`` command line
+tool to retrieve items. Once authenticated, connections are loaded from items
 placed in a folder named `SSH`. Only the item's login **username** and **URI**
 fields are used.
 
