@@ -75,7 +75,7 @@ pre-filled on the next launch. The underlying ``bw`` CLI configuration is kept
 separate, so existing command line logins are unaffected.
 If a ``BW_SESSION`` environment variable is set from another ``bw``
 session, it is ignored during login so the application remains fully
-independent of any terminal usage. Any ``BW_APPDATA_DIR`` variable is
+independent of any terminal usage. Any ``BITWARDENCLI_APPDATA_DIR`` variable is
 also ignored so the app uses an isolated temporary directory for its own
 ``bw`` configuration.
 
