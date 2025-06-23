@@ -17,7 +17,6 @@ def main() -> None:
         level=logging.DEBUG,
         format="%(asctime)s %(levelname)s: %(message)s",
     )
-    print("Name (email)")
 
     # Ensure any Bitwarden CLI environment from the launching shell does not
     # leak into the application or embedded terminals.
