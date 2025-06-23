@@ -17,9 +17,10 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QToolButton,
     QAction,
+    QSizePolicy,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtGui import QKeySequence, QIcon
+from PyQt5.QtGui import QKeySequence, QIcon, QPixmap
 import keyring
 
 from ..models import Connection, Config
@@ -131,6 +132,10 @@ class MainWindow(QMainWindow):
         self.profile_menu = QMenu(self.profile_btn)
         self.profile_btn.setMenu(self.profile_menu)
         self.profile_btn.setPopupMode(QToolButton.InstantPopup)
+
+        spacer = QWidget(toolbar)
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar.addWidget(spacer)
         toolbar.addWidget(self.profile_btn)
 
         # Shortcuts for switching tabs
@@ -250,7 +255,17 @@ class MainWindow(QMainWindow):
             act = QAction("Logout", self)
             act.triggered.connect(self.logout_bitwarden)
             self.profile_menu.addAction(act)
+            avatar_data = bitwarden.fetch_avatar()
+            if avatar_data:
+                pix = QPixmap()
+                if pix.loadFromData(avatar_data):
+                    self.profile_btn.setIcon(QIcon(pix))
+                else:
+                    self.profile_btn.setIcon(QIcon.fromTheme("user-identity"))
+            else:
+                self.profile_btn.setIcon(QIcon.fromTheme("user-identity"))
         else:
             act = QAction("Login", self)
             act.triggered.connect(self.login_bitwarden)
             self.profile_menu.addAction(act)
+            self.profile_btn.setIcon(QIcon.fromTheme("user-identity"))
