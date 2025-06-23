@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QAction,
     QSizePolicy,
 )
-from PyQt5.QtCore import Qt, QPoint, QTimer
+from PyQt5.QtCore import Qt, QPoint, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QKeySequence, QIcon, QPixmap
 import keyring
 
@@ -27,6 +27,7 @@ from ..models import Connection, Config
 from ..config import load_config
 from .. import bitwarden
 from .login_dialog import LoginDialog
+from .loading_dialog import LoadingDialog
 
 
 class TerminalTab(QWidget):
@@ -99,6 +100,23 @@ class TerminalTab(QWidget):
         if hasattr(self, "_check_timer"):
             self._check_timer.stop()
         super().closeEvent(event)
+
+
+class LoginWorker(QThread):
+    """Run the Bitwarden login in a background thread."""
+
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, email: str, password: str, server: str | None):
+        super().__init__()
+        self.email = email
+        self.password = password
+        self.server = server
+
+    def run(self) -> None:
+        success = bitwarden.login(self.email, self.password, self.server)
+        err = bitwarden.get_last_error() or ""
+        self.finished.emit(success, err)
 
 
 class MainWindow(QMainWindow):
@@ -222,15 +240,24 @@ class MainWindow(QMainWindow):
         if dlg.exec() != dlg.Accepted:
             return
         email, password, server = dlg.values()
-        if not bitwarden.login(email, password, server):
-            err = bitwarden.get_last_error() or "Invalid Bitwarden credentials"
+        self._login_details = (email, server)
+        self.loading_dlg = LoadingDialog("Logging in...", self)
+        self.loading_dlg.show()
+        self.login_worker = LoginWorker(email, password, server)
+        self.login_worker.finished.connect(self._on_login_finished)
+        self.login_worker.start()
+
+    def _on_login_finished(self, success: bool, err: str) -> None:
+        self.loading_dlg.close()
+        self.login_worker.deleteLater()
+        if not success:
             QMessageBox.critical(
                 self,
                 "Login Failed",
-                err,
+                err or "Invalid Bitwarden credentials",
             )
             return
-        # Store the email and server in the system keyring for convenience
+        email, server = getattr(self, "_login_details", ("", ""))
         keyring.set_password("sshmanager", "email", email)
         keyring.set_password("sshmanager", "server", server or "")
         self.statusBar().showMessage("Bitwarden login successful", 3000)
