@@ -119,11 +119,23 @@ class LoginWorker(QThread):
         self.finished.emit(success, err)
 
 
+class DataWorker(QThread):
+    """Load connections and avatar in the background."""
+
+    finished = pyqtSignal(object, object)
+
+    def run(self) -> None:
+        cfg = load_config()
+        avatar = bitwarden.fetch_avatar()
+        self.finished.emit(cfg, avatar)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SSH Manager")
         self.config: Config = load_config()
+        self.avatar_data: bytes | None = None
 
         self.splitter = QSplitter(self)
         self.tree = QTreeWidget(self)
@@ -261,13 +273,24 @@ class MainWindow(QMainWindow):
         keyring.set_password("sshmanager", "email", email)
         keyring.set_password("sshmanager", "server", server or "")
         self.statusBar().showMessage("Bitwarden login successful", 3000)
-        self.config = load_config()
+        self.loading_dlg = LoadingDialog("Fetching data...", self)
+        self.loading_dlg.show()
+        self.data_worker = DataWorker()
+        self.data_worker.finished.connect(self._on_data_loaded)
+        self.data_worker.start()
+
+    def _on_data_loaded(self, cfg: Config, avatar: bytes | None) -> None:
+        self.loading_dlg.close()
+        self.data_worker.deleteLater()
+        self.config = cfg
+        self.avatar_data = avatar
         self.load_connections()
         self.update_ui_state()
 
     def logout_bitwarden(self) -> None:
         """Log out of Bitwarden and disable the UI."""
         bitwarden.logout()
+        self.avatar_data = None
         self.config = load_config()
         self.load_connections()
         self.statusBar().showMessage("Logged out", 3000)
@@ -282,7 +305,7 @@ class MainWindow(QMainWindow):
             act = QAction("Logout", self)
             act.triggered.connect(self.logout_bitwarden)
             self.profile_menu.addAction(act)
-            avatar_data = bitwarden.fetch_avatar()
+            avatar_data = self.avatar_data
             if avatar_data:
                 pix = QPixmap()
                 if pix.loadFromData(avatar_data):
