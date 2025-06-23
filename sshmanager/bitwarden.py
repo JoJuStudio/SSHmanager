@@ -16,6 +16,7 @@ import shutil
 import atexit
 from typing import Any, List, Optional
 import urllib.request
+import hashlib
 
 from .models import Connection
 
@@ -26,6 +27,7 @@ _config_dir: Optional[str] = None
 _server_url: Optional[str] = None
 _user_email: Optional[str] = None
 _user_id: Optional[str] = None
+_user_name: Optional[str] = None
 _avatar_data: Optional[bytes] = None
 
 
@@ -82,12 +84,13 @@ def login(
 ) -> bool:
     """Authenticate using the Bitwarden CLI."""
 
-    global _session, _last_error, _config_dir, _server_url, _user_email, _user_id, _avatar_data
+    global _session, _last_error, _config_dir, _server_url, _user_email, _user_id, _user_name, _avatar_data
     _last_error = None
     _session = None
     _server_url = None
     _user_email = None
     _user_id = None
+    _user_name = None
     _avatar_data = None
 
     # Use a temporary config directory so the user's bw CLI state is untouched
@@ -149,6 +152,11 @@ def login(
         _server_url = info.get("serverUrl") or server
         _user_email = info.get("userEmail")
         _user_id = info.get("userId")
+        _user_name = (
+            info.get("userName")
+            or info.get("name")
+            or info.get("profileName")
+        )
     return True
 
 
@@ -167,32 +175,70 @@ def get_last_error() -> Optional[str]:
 
 
 def user_info() -> Optional[dict[str, str]]:
-    """Return server URL, email and user id when logged in."""
+    """Return server URL, email, user id and name when logged in."""
     if not is_unlocked():
         return None
     return {
         "server": _server_url or "",
         "email": _user_email or "",
         "user_id": _user_id or "",
+        "name": _user_name or "",
     }
 
 
+def _generate_placeholder_avatar(text: str, size: int = 48) -> bytes:
+    """Return a simple SVG avatar with initials.
+
+    The background color is derived from ``text`` so it is consistent for a
+    given user.
+    """
+    initials = "".join(part[0].upper() for part in text.split())[:2] or "?"
+    digest = hashlib.sha256(text.encode()).digest()
+    r, g, b = digest[0], digest[1], digest[2]
+    color = f"rgb({r}, {g}, {b})"
+    font_size = int(size * 0.4)
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" pointer-events="none" '
+        f'width="{size}" height="{size}" '
+        f'style="background-color: {color}; width: {size}px; height: {size}px;">'
+        f'<text text-anchor="middle" y="50%" x="50%" dy="0.35em" '
+        f'pointer-events="auto" fill="white" '
+        f'font-family="Helvetica, Arial, sans-serif" '
+        f'style="font-weight: 300; font-size: {font_size}px;">'
+        f"{initials}</text></svg>"
+    )
+    return svg.encode()
+
+
 def fetch_avatar() -> Optional[bytes]:
-    """Download the user's profile image if available."""
+    """Download the user's profile image if available.
+
+    If no image can be retrieved from the server, a placeholder avatar is
+    generated from the user's name when available, otherwise the email address.
+    """
     global _avatar_data
     if _avatar_data is not None:
         return _avatar_data
     info = user_info()
-    if not info or not info["server"] or not info["user_id"]:
+    if not info:
         return None
-    url = info["server"].rstrip("/") + f"/identity/profile/images/{info['user_id']}.jpg"
-    try:
-        with urllib.request.urlopen(url) as resp:
-            _avatar_data = resp.read()
-            return _avatar_data
-    except Exception as exc:  # pragma: no cover - network failures
-        logging.error("Failed to fetch avatar: %s", exc)
-        return None
+    email = info.get("email", "")
+    name = info.get("name")
+    server = info.get("server")
+    user_id = info.get("user_id")
+    if server and user_id:
+        url = server.rstrip("/") + f"/identity/profile/images/{user_id}.jpg"
+        try:
+            with urllib.request.urlopen(url) as resp:
+                _avatar_data = resp.read()
+                return _avatar_data
+        except Exception as exc:  # pragma: no cover - network failures
+            logging.error("Failed to fetch avatar: %s", exc)
+    placeholder_key = name or email
+    if placeholder_key:
+        _avatar_data = _generate_placeholder_avatar(placeholder_key)
+        return _avatar_data
+    return None
 
 
 def _get_ssh_folder_id() -> Optional[str]:
@@ -255,11 +301,12 @@ def sync() -> Any:
 
 def logout() -> None:
     """Clear the current session and temporary config."""
-    global _session, _config_dir, _server_url, _user_email, _user_id, _avatar_data
+    global _session, _config_dir, _server_url, _user_email, _user_id, _user_name, _avatar_data
     _session = None
     _server_url = None
     _user_email = None
     _user_id = None
+    _user_name = None
     _avatar_data = None
     if _config_dir:
         shutil.rmtree(_config_dir, ignore_errors=True)
