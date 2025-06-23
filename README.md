@@ -72,7 +72,11 @@ fields are used.
 The application does not store your Bitwarden session. Only the email and
 server address are saved using the system keyring so the login dialog can be
 pre-filled on the next launch. The underlying ``bw`` CLI configuration is kept
-separate, so existing command line logins are unaffected.
+separate, so existing command line logins are unaffected. If you specify a
+custom server URL, the application automatically runs ``bw config server`` in
+its temporary configuration directory. You do **not** need to run this command
+yourself—it simply ensures the CLI communicates with your self-hosted
+Vaultwarden instance without touching any existing ``bw`` setup.
 If a ``BW_SESSION`` environment variable is set from another ``bw``
 session, it is ignored during login so the application remains fully
 independent of any terminal usage. Any ``BITWARDENCLI_APPDATA_DIR`` variable is

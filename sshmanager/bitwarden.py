@@ -19,9 +19,7 @@ from typing import Any, List, Optional
 from .models import Connection
 
 
-_DEFAULT_SERVER = "https://vault.bitwarden.com"
 _session: Optional[str] = None
-_server: str = _DEFAULT_SERVER
 _last_error: Optional[str] = None
 _config_dir: Optional[str] = None
 
@@ -38,10 +36,6 @@ atexit.register(_cleanup)
 def _run_bw(args: List[str], parse_json: bool = True) -> Any:
     """Run a Bitwarden CLI command and return the parsed output."""
     env = os.environ.copy()
-    if _server:
-        env["BW_SERVER"] = _server
-    else:
-        env.pop("BW_SERVER", None)
     if _session:
         env["BW_SESSION"] = _session
     else:
@@ -83,7 +77,7 @@ def login(
 ) -> bool:
     """Authenticate using the Bitwarden CLI."""
 
-    global _session, _server, _last_error, _config_dir
+    global _session, _last_error, _config_dir
     _last_error = None
     _session = None
 
@@ -96,7 +90,6 @@ def login(
         _last_error = "Email and password are required"
         return False
 
-    _server = server or _DEFAULT_SERVER
     # Use a clean environment when invoking the CLI to avoid interfering with
     # any active command line sessions, but do not modify this process
     # environment so embedded terminals can continue using the user's session.
@@ -105,8 +98,21 @@ def login(
     # Ensure any existing session token from the user's shell is ignored so the
     # application remains isolated from command line usage.
     env.pop("BW_SESSION", None)
-    env["BW_SERVER"] = _server
+    env.pop("BW_SERVER", None)
     env["BITWARDENCLI_APPDATA_DIR"] = _config_dir
+    if server:
+        try:
+            subprocess.run(
+                ["bw", "config", "server", server],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            _last_error = exc.stderr.strip() or "Failed to set server"
+            logging.error("bw config server failed: %s", _last_error)
+            return False
     try:
         result = subprocess.run(
             ["bw", "login", email, password, "--raw"],
