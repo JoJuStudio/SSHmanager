@@ -272,6 +272,11 @@ class MainWindow(QMainWindow):
         email, server = getattr(self, "_login_details", ("", ""))
         keyring.set_password("sshmanager", "email", email)
         keyring.set_password("sshmanager", "server", server or "")
+        info = bitwarden.user_info()
+        if info:
+            name = info.get("name", "")
+            email_addr = info.get("email", "")
+            print(f"{name} ({email_addr})")
         self.statusBar().showMessage("Bitwarden login successful", 3000)
         self.loading_dlg = LoadingDialog("Fetching data...", self)
         self.loading_dlg.show()
