@@ -15,6 +15,7 @@ import tempfile
 import shutil
 import atexit
 from typing import Any, List, Optional
+import urllib.request
 
 from .models import Connection
 
@@ -22,6 +23,10 @@ from .models import Connection
 _session: Optional[str] = None
 _last_error: Optional[str] = None
 _config_dir: Optional[str] = None
+_server_url: Optional[str] = None
+_user_email: Optional[str] = None
+_user_id: Optional[str] = None
+_avatar_data: Optional[bytes] = None
 
 
 def _cleanup() -> None:
@@ -77,9 +82,13 @@ def login(
 ) -> bool:
     """Authenticate using the Bitwarden CLI."""
 
-    global _session, _last_error, _config_dir
+    global _session, _last_error, _config_dir, _server_url, _user_email, _user_id, _avatar_data
     _last_error = None
     _session = None
+    _server_url = None
+    _user_email = None
+    _user_id = None
+    _avatar_data = None
 
     # Use a temporary config directory so the user's bw CLI state is untouched
     if _config_dir:
@@ -133,6 +142,13 @@ def login(
 
     # Initial sync to ensure items are available
     _run_bw(["sync"], parse_json=False)
+
+    # Retrieve user information for avatar support
+    info = _run_bw(["status"])
+    if isinstance(info, dict):
+        _server_url = info.get("serverUrl") or server
+        _user_email = info.get("userEmail")
+        _user_id = info.get("userId")
     return True
 
 
@@ -148,6 +164,35 @@ def is_unlocked() -> bool:
 
 def get_last_error() -> Optional[str]:
     return _last_error
+
+
+def user_info() -> Optional[dict[str, str]]:
+    """Return server URL, email and user id when logged in."""
+    if not is_unlocked():
+        return None
+    return {
+        "server": _server_url or "",
+        "email": _user_email or "",
+        "user_id": _user_id or "",
+    }
+
+
+def fetch_avatar() -> Optional[bytes]:
+    """Download the user's profile image if available."""
+    global _avatar_data
+    if _avatar_data is not None:
+        return _avatar_data
+    info = user_info()
+    if not info or not info["server"] or not info["user_id"]:
+        return None
+    url = info["server"].rstrip("/") + f"/identity/profile/images/{info['user_id']}.jpg"
+    try:
+        with urllib.request.urlopen(url) as resp:
+            _avatar_data = resp.read()
+            return _avatar_data
+    except Exception as exc:  # pragma: no cover - network failures
+        logging.error("Failed to fetch avatar: %s", exc)
+        return None
 
 
 def _get_ssh_folder_id() -> Optional[str]:
@@ -210,8 +255,12 @@ def sync() -> Any:
 
 def logout() -> None:
     """Clear the current session and temporary config."""
-    global _session, _config_dir
+    global _session, _config_dir, _server_url, _user_email, _user_id, _avatar_data
     _session = None
+    _server_url = None
+    _user_email = None
+    _user_id = None
+    _avatar_data = None
     if _config_dir:
         shutil.rmtree(_config_dir, ignore_errors=True)
         _config_dir = None
