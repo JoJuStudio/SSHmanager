@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
 
@@ -14,9 +14,14 @@ class LoadingDialog(QDialog):
         self.spinner_label = QLabel(self)
         self.spinner_label.setAlignment(Qt.AlignCenter)
         movie = QMovie(":/qt-project.org/styles/commonstyle/images/working-32.gif")
-        self.spinner_label.setMovie(movie)
-        movie.start()
-        layout.addWidget(self.spinner_label)
+        if movie.isValid():
+            self.spinner_label.setMovie(movie)
+            movie.start()
+            layout.addWidget(self.spinner_label)
+        else:
+            bar = QProgressBar(self)
+            bar.setRange(0, 0)
+            layout.addWidget(bar)
         text_label = QLabel(text, self)
         text_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(text_label)
