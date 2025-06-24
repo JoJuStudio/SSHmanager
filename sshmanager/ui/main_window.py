@@ -28,6 +28,7 @@ from ..config import load_config
 from .. import bitwarden
 from .login_dialog import LoginDialog
 from .loading_dialog import LoadingDialog
+from .connection_dialog import ConnectionDialog
 
 
 class TerminalTab(QWidget):
@@ -157,6 +158,10 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Main", self)
         self.addToolBar(toolbar)
 
+        self.new_conn_act = QAction(QIcon.fromTheme("list-add"), "New Connection", self)
+        self.new_conn_act.triggered.connect(self.create_connection)
+        toolbar.addAction(self.new_conn_act)
+
         self.profile_btn = QToolButton(self)
         self.profile_btn.setIcon(QIcon.fromTheme("user-identity"))
         self.profile_menu = QMenu(self.profile_btn)
@@ -203,6 +208,15 @@ class MainWindow(QMainWindow):
         tab = TerminalTab(None, self)
         self.tab_widget.addTab(tab, "Terminal")
         self.tab_widget.setCurrentWidget(tab)
+
+    def create_connection(self) -> None:
+        """Open a dialog to create a new connection and add it to the tree."""
+        dlg = ConnectionDialog(self)
+        if dlg.exec() != dlg.Accepted:
+            return
+        conn = dlg.connection()
+        self.config.connections.append(conn)
+        self.load_connections()
 
     def open_connection(self, item: QTreeWidgetItem):
         conn = item.data(0, Qt.ItemDataRole.UserRole)
