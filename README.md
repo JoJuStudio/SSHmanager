@@ -18,7 +18,11 @@ loaded directly from Bitwarden and no data is stored locally.
 - Python 3.10+
 - PyQt5
 - argon2-cffi
-- Qt5 development packages and `libkf5parts-dev` to build the Konsole wrapper
+- Qt5 development packages and `libkf5parts-dev` (or their equivalents) to
+  build the Konsole wrapper
+  - Debian/Ubuntu: `libkf5parts-dev`
+  - Fedora: `qt5-qtbase-devel`, `kf5-kparts-devel`, `kf5-kcoreaddons-devel`,
+    `kf5-kxmlgui-devel`
 
 Install Python dependencies with:
 
@@ -41,18 +45,15 @@ script to compile `libkonsole_embed.so` inside the `sshmanager` package:
 ./setup.sh
 ```
 
-The script simply runs the `g++` command shown below. You only need to run it
-once unless you modify `konsole_embed.cpp`.
+The script uses `pkg-config` to find the necessary include and library paths so
+it works across distributions. It effectively runs the following command:
 
 ```bash
 g++ -fPIC -shared konsole_embed.cpp -o sshmanager/libkonsole_embed.so \
-  -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets \
-  -I/usr/include/x86_64-linux-gnu/qt5/QtGui \
-  -I/usr/include/x86_64-linux-gnu/qt5/QtCore \
-  -I/usr/include/x86_64-linux-gnu/qt5 \
-  -I/usr/include/KF5/KParts -I/usr/include/KF5 \
-  -I/usr/include/KF5/KCoreAddons -I/usr/include/KF5/KXmlGui \
-  -lKF5Parts -lKF5XmlGui -lKF5CoreAddons -lQt5Widgets -lQt5Gui -lQt5Core
+  $(pkg-config --cflags Qt5Widgets Qt5Gui Qt5Core \
+               KF5Parts KF5XmlGui KF5CoreAddons) \
+  $(pkg-config --libs Qt5Widgets Qt5Gui Qt5Core \
+               KF5Parts KF5XmlGui KF5CoreAddons)
 ```
 
 This launches a window listing the connections found in Bitwarden. Double-click
